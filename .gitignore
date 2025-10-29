@@ -1,0 +1,17 @@
+# Ignore vendor folders in both app and backend
+/app/backend/vendor/
+/backend/vendor/
+
+# Ignore .env files in both app and backend
+/app/.env
+/backend/.env
+
+# Alternatively, if you want a more generic pattern:
+**/vendor/
+**/.env
+
+/storage/*
+/uploads/*
+/logs/*
+
+/app/backend/logs/*

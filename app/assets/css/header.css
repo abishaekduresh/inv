@@ -1,0 +1,196 @@
+:root {
+  --primary-1: #4300ff;
+  --primary-2: #0065f8;
+  --primary-3: #00caff;
+  --primary-4: #00ffde;
+  --sidebar-bg: #0f1117;
+  --sidebar-text: #b8c1cc;
+  --sidebar-hover: #0065f8;
+  --sidebar-active: #00caff;
+  --content-bg: #f7f9fc;
+}
+
+body {
+  margin: 0;
+  background: var(--content-bg);
+  font-family: "Inter", sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== Layout ===== */
+.main-wrapper {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 250px;
+  background: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  color: var(--sidebar-text);
+  transition: all 0.3s ease;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar h6 {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  color: #7b8491;
+  padding: 1rem 1.2rem 0.5rem;
+}
+
+.sidebar .nav-link {
+  color: var(--sidebar-text);
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  border-left: 3px solid transparent;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.sidebar .nav-link i {
+  width: 22px;
+  text-align: center;
+  margin-right: 10px;
+}
+
+.sidebar .nav-link:hover {
+  color: var(--primary-3);
+  background: rgba(0, 101, 248, 0.15);
+}
+
+.sidebar .nav-link.active {
+  color: var(--primary-4);
+  background: rgba(0, 101, 248, 0.25);
+  border-left: 3px solid var(--primary-3);
+}
+
+/* ===== Submenu ===== */
+.submenu {
+  display: none;
+  flex-direction: column;
+  padding-left: 45px;
+  transition: all 0.3s ease;
+}
+
+.submenu a {
+  padding: 6px 0;
+  font-size: 0.88rem;
+  color: var(--sidebar-text);
+  text-decoration: none;
+}
+
+.submenu a:hover {
+  color: var(--primary-4);
+}
+
+.dropdown-toggle::after {
+  content: "\f107";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  margin-left: auto;
+  transition: transform 0.3s ease;
+}
+
+.dropdown-toggle.open::after {
+  transform: rotate(180deg);
+}
+
+/* ===== Content ===== */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--content-bg);
+  padding: 1.5rem;
+}
+
+/* ===== Navbar ===== */
+.navbar {
+  z-index: 1051;
+  background: linear-gradient(90deg, var(--primary-1), var(--primary-3));
+  padding: 0.7rem 1rem;
+  color: white;
+}
+
+.navbar-brand {
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: 0.3px;
+}
+
+.navbar-toggler {
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+}
+
+#logoutBtn {
+  border-radius: 6px;
+  padding: 4px 12px;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+#logoutBtn:hover {
+  background: var(--primary-4);
+  color: #000;
+  border-color: transparent;
+}
+
+/* Mobile Offcanvas Sidebar Fixes */
+.offcanvas {
+  width: 260px !important;
+  background-color: #121418;
+  color: #fff;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.offcanvas-header {
+  background: linear-gradient(90deg, #4300ff, #0065f8, #00caff);
+}
+
+.offcanvas .nav-link {
+  color: #bfc5d1;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.offcanvas .nav-link:hover {
+  background: rgba(0, 101, 248, 0.2);
+  color: #00caff;
+}
+
+.offcanvas .submenu a {
+  color: #aab1bd;
+  font-size: 0.9rem;
+  text-decoration: none;
+  padding-left: 8px;
+  transition: all 0.2s ease;
+}
+
+.offcanvas .submenu a:hover {
+  color: #00ffde;
+}
+
+/* ===== Mobile Sidebar Hidden ===== */
+@media (max-width: 991.98px) {
+  .sidebar {
+    display: none;
+  }
+}
+
+/* ===== Card Styling ===== */
+.card {
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}

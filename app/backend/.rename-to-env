@@ -1,0 +1,11 @@
+BASE_API_PATH="/app/backend/public"
+APP_ENV="development"
+DOMAIN="localhost"
+
+# COOKIE
+COOKIE_PATH='/'
+# COOKIE_DOMAIN='null'
+COOKIE_SAMESITE='lax'
+COOKIE_EXPIRY_SECONDS=3600
+
+BACKEND_API_URL="http://localhost/backend/public"

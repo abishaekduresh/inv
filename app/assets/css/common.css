@@ -1,0 +1,19 @@
+/* Chrome, Safari, Edge, Opera */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.select2-container--bootstrap-5 .select2-selection {
+  min-height: 38px;
+  border-radius: 0.5rem;
+}
+.select2-container--bootstrap-5 .select2-selection__rendered {
+  padding-left: 0.75rem;
+}
