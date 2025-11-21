@@ -37,6 +37,7 @@ tmp/
 
 # App backend logs (explicit)
 /app/backend/logs/
+/backend/logs/
 
 # ==============================
 # IDE / System Files

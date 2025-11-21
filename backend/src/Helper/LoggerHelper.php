@@ -48,10 +48,8 @@ class LoggerHelper
 
             if (!$ok) {
                 error_log("❌ LoggerHelper failed: " . print_r($stmt->errorInfo(), true));
-            } else {
-                error_log("✅ Logged: {$payload['action']} {$payload['endpoint']}");
             }
-
+            
             return $ok;
         } catch (PDOException $e) {
             error_log("❌ PDO error in LoggerHelper: " . $e->getMessage());

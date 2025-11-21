@@ -1,14 +1,14 @@
 $(document).ready(function () {
   const DASHBOARD_KEY = "dashboardStats";
 
-  // Render invoices (Bootstrap cards)
-  function renderRecentInvoices(invoices) {
+  // ================== RENDERERS ==================
+  function renderRecentInvoices(invoices = []) {
     const container = $("#recentInvoicesContainer");
     $(".recentInvoicesCount").text(invoices.length);
 
     container.empty();
 
-    if (!invoices || !invoices.length) {
+    if (!invoices.length) {
       container.html(
         `<div class="col-12 text-center text-muted py-3">No recent invoices found.</div>`
       );
@@ -17,55 +17,68 @@ $(document).ready(function () {
 
     invoices.forEach((inv) => {
       const card = `
-        <div class="col-md-6 col-lg-4 mb-3">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body d-flex flex-column justify-content-between">
+    <div class="col-md-6 col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm h-100 rounded-4">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <span class="badge text-white fw-semibold px-3 py-2 rounded-pill shadow-sm" 
+                    style="background: linear-gradient(90deg, #007bff, #0056b3); font-size: 0.85rem;">
+                #${inv.invoiceNumber}
+              </span>
+            </div>
+            <div class="text-end small text-secondary lh-sm">
               <div>
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="badge bg-primary bg-opacity-10 text-primary fw-semibold">
-                    #${inv.invoice_number}
-                  </span>
-                  <small class="text-muted">
-                    <i class="fa fa-calendar me-1"></i>${inv.invoice_date}
-                  </small>
-                </div>
-                <h6 class="fw-semibold text-dark mb-1">
-                  <i class="fa fa-user me-2 text-secondary"></i>${inv.name}
-                </h6>
-                <h5 class="fw-bold text-success mb-0">₹${parseFloat(
-                  inv.amount
-                ).toLocaleString()}</h5>
+                <i class="fa fa-calendar me-1"></i>${inv.invoiceDate}
+              </div>
+              <div class="mt-1">
+                <i class="fa fa-map-marker-alt me-1 text-danger"></i>${(
+                  inv.place || "—"
+                ).toUpperCase()}
               </div>
             </div>
           </div>
-        </div>`;
+
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold text-dark mb-0">
+              <i class="fa fa-user me-2 text-secondary"></i>${inv.name}
+            </h6>
+            <h5 class="fw-bold text-success mb-0">
+              ₹${parseFloat(inv.amount).toLocaleString()}
+            </h5>
+          </div>
+        </div>
+      </div>
+    </div>`;
       container.append(card);
     });
   }
 
-  // Render dashboard stats
-  function renderDashboard(data) {
-    if (!data) return;
+  function renderDashboard(summary, invoices) {
+    if (!summary) return;
 
-    $("#totalInvoices").text(data.totalInvoices || 0);
-    $("#todayInvoices").text(data.todayInvoices || 0);
-    $("#yesterdayInvoices").text(data.yesterdayInvoices || 0);
-    $("#totalBusiness").text(data.totalBusiness || 0);
-    $("#totalSales").text(data.totalSales || "0.00");
-    $("#todaySales").text(data.todaySales || "0.00");
-    $("#yesterdaySales").text(data.yesterdaySales || "0.00");
-    $("#totalLogs").text(data.totalLogs || 0);
+    $("#totalInvoices").text(summary.totalInvoices ?? 0);
+    $("#todayInvoices").text(summary.todayInvoices ?? 0);
+    $("#totalBusiness").text(summary.totalBusiness ?? 0);
+    $("#totalLogs").text(summary.totalLogs ?? 0);
+    $("#totalSales").text(summary.totalSales ?? "0.00");
+    $("#todaySales").text(summary.todaySales ?? "0.00");
+    $("#yesterdaySales").text(summary.yesterdaySales ?? "0.00");
+    $("#yesterdayInvoices").text(summary.yesterdayInvoices ?? 0);
 
-    renderRecentInvoices(data.recentInvoices || []);
+    renderRecentInvoices(invoices || []);
   }
 
-  // ===== Render Charts =====
-  function renderCharts(data) {
-    if (!data || !data.last7Days) return;
+  function renderCharts(chart) {
+    if (!chart || !chart.labels) return;
 
-    const labels = data.last7Days.labels || [];
-    const sales = data.last7Days.sales || [];
-    const invoices = data.last7Days.invoices || [];
+    const { labels, sales, invoices, period, fromDate, toDate } = chart;
+
+    $("#chartPeriodLabel").text(
+      `Showing ${period?.toUpperCase() || ""} data${
+        fromDate && toDate ? ` (${fromDate} → ${toDate})` : ""
+      }`
+    );
 
     if (window.salesChartInstance) window.salesChartInstance.destroy();
     if (window.invoiceChartInstance) window.invoiceChartInstance.destroy();
@@ -73,97 +86,83 @@ $(document).ready(function () {
     const salesCtx = document.getElementById("salesChart");
     const invoiceCtx = document.getElementById("invoiceChart");
 
-    // === Sales Chart (Bar) ===
-    if (salesCtx) {
-      window.salesChartInstance = new Chart(salesCtx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Sales (₹)",
-              data: sales,
-              backgroundColor: "rgba(13, 110, 253, 0.7)",
-              borderRadius: 6,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: { beginAtZero: true },
+    // Sales chart
+    window.salesChartInstance = new Chart(salesCtx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Sales (₹)",
+            data: sales,
+            backgroundColor: "rgba(13, 110, 253, 0.7)",
+            borderRadius: 6,
           },
-          plugins: { legend: { display: false } },
-        },
-      });
-    }
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
 
-    // === Invoice Chart (Line) ===
-    if (invoiceCtx) {
-      window.invoiceChartInstance = new Chart(invoiceCtx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Invoices",
-              data: invoices,
-              fill: true,
-              borderColor: "#198754",
-              backgroundColor: "rgba(25, 135, 84, 0.1)",
-              tension: 0.4,
-              pointBackgroundColor: "#198754",
-              pointRadius: 4,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: { beginAtZero: true },
+    // Invoice chart
+    window.invoiceChartInstance = new Chart(invoiceCtx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Invoices",
+            data: invoices,
+            borderColor: "#198754",
+            fill: true,
+            backgroundColor: "rgba(25,135,84,0.1)",
+            tension: 0.4,
           },
-          plugins: { legend: { display: false } },
-        },
-      });
-    }
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
   }
 
-  // Fetch dashboard data from API
+  // ================== FETCH DASHBOARD DATA ==================
   function fetchDashboardData(showToast = true) {
+    const period = $("#periodSelect").val() || "today";
+    const fromDate = $("#fromDate").val();
+    const toDate = $("#toDate").val();
+
+    const params = { period, limit: 6 };
+    if (fromDate) params.fromDate = fromDate;
+    if (toDate) params.toDate = toDate;
+
     apiRequest(
       "GET",
       "/api/business/stats",
-      null,
+      params,
       false,
       function (res) {
-        if (
-          res.status &&
-          Array.isArray(res.data.records) &&
-          res.data.records.length
-        ) {
-          const data = res.data.records[0]; // ✅ pick first record
-          sessionStorage.setItem(DASHBOARD_KEY, JSON.stringify(data));
+        if (res.status && res.data) {
+          const summary = res.data.summary || {};
+          const chart = res.data.chart || {};
+          const invoices = res.data.recentInvoices || [];
 
-          if (showToast) {
-            Swal.fire({
-              toast: true,
-              icon: "success",
-              text: "Dashboard updated",
-              position: "top-end",
-              showConfirmButton: false,
-              timer: 1500,
-              timerProgressBar: true,
-            });
-          }
+          // Save to session
+          sessionStorage.setItem(DASHBOARD_KEY, JSON.stringify(res.data));
 
-          renderDashboard(data);
-          renderCharts(data);
+          renderDashboard(summary, invoices);
+          renderCharts(chart);
         } else {
           Swal.fire({
             toast: true,
-            position: "top-end",
             icon: "error",
-            title: res.message || "Failed to fetch dashboard data",
+            text: res.message || "No dashboard data found",
+            position: "top-end",
             showConfirmButton: false,
             timer: 1500,
             timerProgressBar: true,
@@ -173,9 +172,9 @@ $(document).ready(function () {
       function () {
         Swal.fire({
           toast: true,
-          position: "top-end",
           icon: "error",
-          title: "Error fetching dashboard data",
+          text: "Failed to load dashboard data",
+          position: "top-end",
           showConfirmButton: false,
           timer: 1500,
           timerProgressBar: true,
@@ -184,27 +183,53 @@ $(document).ready(function () {
     );
   }
 
-  // Load from sessionStorage if available
+  // ================== EVENT HANDLERS ==================
+  $("#refreshDashboardBtn").click(function () {
+    const $btn = $(this);
+    $btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i>'); // Refreshing...
+
+    const cached = sessionStorage.getItem(DASHBOARD_KEY);
+    if (cached) {
+      const data = JSON.parse(cached);
+      renderDashboard(data.summary, data.recentInvoices);
+      renderCharts(data.chart);
+    } else {
+      fetchDashboardData(false);
+    }
+
+    // Use unique timeout key
+    setUniqueTimeout(
+      "refreshDashboard",
+      () => {
+        $btn.prop("disabled", false).html('<i class="fa fa-refresh me-1"></i>'); // Refresh
+      },
+      1500
+    );
+  });
+
+  $("#applyFilterBtn").click(function () {
+    const $btn = $(this);
+    $btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i>'); // Applying...
+
+    fetchDashboardData();
+
+    // Use unique timeout key
+    setUniqueTimeout(
+      "applyFilter",
+      () => {
+        $btn.prop("disabled", false).html('<i class="fa fa-filter me-1"></i>'); // Apply
+      },
+      2500
+    );
+  });
+
+  // ================== INITIAL LOAD ==================
   const cached = sessionStorage.getItem(DASHBOARD_KEY);
   if (cached) {
-    const cachedData = JSON.parse(cached);
-    renderDashboard(cachedData);
-    renderCharts(cachedData);
+    const data = JSON.parse(cached);
+    renderDashboard(data.summary, data.recentInvoices);
+    renderCharts(data.chart);
   } else {
     fetchDashboardData(false);
   }
-
-  // Refresh button
-  $("#refreshDashboardBtn").on("click", function () {
-    const $btn = $(this);
-    $btn
-      .prop("disabled", true)
-      .html('<i class="fa fa-spinner fa-spin"></i> Refreshing...');
-    fetchDashboardData();
-    setTimeout(() => {
-      $btn
-        .prop("disabled", false)
-        .html('<i class="fa fa-refresh"></i> Refresh');
-    }, 2000);
-  });
 });

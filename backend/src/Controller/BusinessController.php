@@ -347,7 +347,10 @@ class BusinessController
             'businessId'  => isset($queryParams['id']) ? strtoupper($queryParams['id']) : null,
             'phone'       => isset($queryParams['ph']) ? (int) $queryParams['ph'] : null,
             'status'      => $queryParams['sts'] ?? 'active',
+            'fromDate'    => isset($queryParams['fromDate']) ? $queryParams['fromDate'] : null,
+            'toDate'    => isset($queryParams['toDate']) ? $queryParams['toDate'] : null,
             'order'       => strtoupper($queryParams['ord'] ?? 'DESC'),
+            'period'      => isset($queryParams['period']) ? strtolower($queryParams['period']) : 'today',
             'page'        => (int)($queryParams['page'] ?? 1),
             'limit'       => (int)($queryParams['limit'] ?? 25),
         ];

@@ -80,8 +80,20 @@ $APP_NAME = AppConfig::APP_NAME ?? null;
     <div class="sidebar d-none d-lg-flex flex-column">
       <h6>Main Menu</h6>
       <nav class="nav flex-column">
-        <a href="<?= $base_url ?>dashboard" class="nav-link"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+        <div class="position-relative">
+          <a href="<?= $base_url ?>dashboard" class="nav-link">
+            <i class="fa-solid fa-gauge"></i> Dashboard
+          </a>
+          <!-- <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            New
+            <span class="visually-hidden">new item</span> -->
+          </span>
+        </div>
         <a href="<?= $base_url ?>invoices" class="nav-link"><i class="fa-solid fa-file-invoice"></i> Invoices</a>
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+          New
+          <span class="visually-hidden">new item</span>
+        </span>
 
         <a href="<?= $base_url ?>#" class="nav-link dropdown-toggle"><i class="fa-solid fa-chart-line"></i> Reports</a>
         <div class="submenu">

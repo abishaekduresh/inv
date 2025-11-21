@@ -127,7 +127,7 @@ class BusinessModel
                     'logoPath'   => $row['logo_path'] ?? null,
                     'status'     => $row['business_status'],
                     'createdAt'  => $row['created_at'],
-                    'updatedAt'  => $row['updated_at'],
+                    'updatedAt'  => $row['updated_at'] ?? null,
                 ];
             }, $results);
 
@@ -557,15 +557,32 @@ class BusinessModel
             $businessId = $data['businessId'] ?? null;
             $status     = $data['status'] ?? 'active';
             $page       = (int)($data['page'] ?? 1);
-            $limit      = (int)($data['limit'] ?? 6);
+            $limit      = (int)($data['limit'] ?? 10);
             $offset     = ($page - 1) * $limit;
 
+            // period: today | yesterday | daily | monthly | yearly
+            $period     = strtolower(trim($data['period'] ?? 'today'));
+
+            // optional date filters
+            $fromDate   = !empty($data['fromDate']) ? date('Y-m-d', strtotime($data['fromDate'])) : null;
+            $toDate     = !empty($data['toDate'])   ? date('Y-m-d', strtotime($data['toDate']))   : null;
+
+            // auto date logic for today / yesterday
+            if ($period === 'today') {
+                $fromDate = $toDate = date('Y-m-d');
+            } elseif ($period === 'yesterday') {
+                $fromDate = $toDate = date('Y-m-d', strtotime('-1 day'));
+            }
+
+            // ======================
+            // WHERE CONDITIONS
+            // ======================
             $whereInvoices = " WHERE invoice_status = :status ";
             $whereBusiness = " WHERE business_status = :status ";
             $whereLogs     = " WHERE 1=1 ";
 
-            $paramsInvoices = [':status' => trim($status)];
-            $paramsBusiness = [':status' => trim($status)];
+            $paramsInvoices = [':status' => $status];
+            $paramsBusiness = [':status' => $status];
             $paramsLogs     = [];
 
             if (!empty($businessId)) {
@@ -578,131 +595,161 @@ class BusinessModel
                 $paramsLogs[':businessId']     = $businessId;
             }
 
-            // ======================
-            // DASHBOARD STATS
-            // ======================
-            $query = "
-                SELECT 
-                    COUNT(*) AS total_invoices,
-                    SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = CURDATE() THEN 1 ELSE 0 END) AS today_invoices,
-                    SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) THEN 1 ELSE 0 END) AS yesterday_invoices,
-                    IFNULL(SUM(amount), 0) AS total_sales,
-                    IFNULL(SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = CURDATE() THEN amount ELSE 0 END), 0) AS today_sales,
-                    IFNULL(SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) THEN amount ELSE 0 END), 0) AS yesterday_sales
-                FROM invoices
-                $whereInvoices
-            ";
-            $stmt = $conn->prepare($query);
-            foreach ($paramsInvoices as $k => $v) $stmt->bindValue($k, $v);
-            $stmt->execute();
-            $invoiceStats = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($fromDate && $toDate) {
+                $whereInvoices .= " AND DATE(FROM_UNIXTIME(created_at)) BETWEEN :fromDate AND :toDate ";
+                $paramsInvoices[':fromDate'] = $fromDate;
+                $paramsInvoices[':toDate']   = $toDate;
+            } elseif ($fromDate) {
+                $whereInvoices .= " AND DATE(FROM_UNIXTIME(created_at)) >= :fromDate ";
+                $paramsInvoices[':fromDate'] = $fromDate;
+            } elseif ($toDate) {
+                $whereInvoices .= " AND DATE(FROM_UNIXTIME(created_at)) <= :toDate ";
+                $paramsInvoices[':toDate'] = $toDate;
+            }
 
             // ======================
-            // TOTAL BUSINESS
+            // SUMMARY STATS (separate params)
+            // ======================
+            $summaryQuery = "
+                SELECT 
+                    COUNT(*) AS total_invoices,
+                    IFNULL(SUM(amount), 0) AS total_sales,
+                    SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = CURDATE() THEN 1 ELSE 0 END) AS today_invoices,
+                    IFNULL(SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = CURDATE() THEN amount ELSE 0 END), 0) AS today_sales,
+                    SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) THEN 1 ELSE 0 END) AS yesterday_invoices,
+                    IFNULL(SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) THEN amount ELSE 0 END), 0) AS yesterday_sales
+                FROM invoices
+                WHERE invoice_status = :status
+            ";
+            $summaryParams = [':status' => $status];
+
+            if (!empty($businessId)) {
+                $summaryQuery .= " AND business_id = :businessId ";
+                $summaryParams[':businessId'] = $businessId;
+            }
+
+            $stmt = $conn->prepare($summaryQuery);
+            foreach ($summaryParams as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $summary = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+            // ======================
+            // TOTAL BUSINESS & LOGS
             // ======================
             $stmt = $conn->prepare("SELECT COUNT(*) FROM business $whereBusiness");
             foreach ($paramsBusiness as $k => $v) $stmt->bindValue($k, $v);
             $stmt->execute();
             $totalBusiness = (int)$stmt->fetchColumn();
 
-            // ======================
-            // TOTAL LOGS
-            // ======================
             $stmt = $conn->prepare("SELECT COUNT(*) FROM activity_logs $whereLogs");
             foreach ($paramsLogs as $k => $v) $stmt->bindValue($k, $v);
             $stmt->execute();
             $totalLogs = (int)$stmt->fetchColumn();
 
             // ======================
-            // RECENT INVOICES (Paginated)
+            // PAGINATION
             // ======================
-            // Count total invoices (for pagination)
-            $countQuery = "SELECT COUNT(*) FROM invoices $whereInvoices";
-            $stmt = $conn->prepare($countQuery);
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM invoices $whereInvoices");
             foreach ($paramsInvoices as $k => $v) $stmt->bindValue($k, $v);
             $stmt->execute();
             $totalInvoicesCount = (int)$stmt->fetchColumn();
             $totalPages = max(1, ceil($totalInvoicesCount / $limit));
 
-            // Fetch limited recent invoices
+            // ======================
+            // RECENT INVOICES
+            // ======================
             $stmt = $conn->prepare("
                 SELECT 
-                    invoice_id, 
-                    invoice_number, 
-                    name, 
-                    amount, 
-                    DATE(FROM_UNIXTIME(created_at)) AS invoice_date 
+                    * 
                 FROM invoices 
-                $whereInvoices
                 ORDER BY id DESC 
                 LIMIT :limit OFFSET :offset
             ");
-            foreach ($paramsInvoices as $k => $v) $stmt->bindValue($k, $v);
+            // foreach ($paramsInvoices as $k => $v) $stmt->bindValue($k, $v); // $whereInvoices
             $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
             $stmt->execute();
             $recentInvoices = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             // ======================
-            // CHART DATA (LAST 7 DAYS)
+            // CHART DATA
             // ======================
+            switch ($period) {
+                case 'yearly':
+                    $dateSelect = "YEAR(FROM_UNIXTIME(created_at))";
+                    $groupBy = "YEAR(FROM_UNIXTIME(created_at))";
+                    break;
+                case 'monthly':
+                    $dateSelect = "DATE_FORMAT(FROM_UNIXTIME(created_at), '%Y-%m')";
+                    $groupBy = "YEAR(FROM_UNIXTIME(created_at)), MONTH(FROM_UNIXTIME(created_at))";
+                    break;
+                case 'yesterday':
+                case 'today':
+                    $dateSelect = "HOUR(FROM_UNIXTIME(created_at))";
+                    $groupBy = "HOUR(FROM_UNIXTIME(created_at))";
+                    break;
+                default:
+                    $dateSelect = "DATE(FROM_UNIXTIME(created_at))";
+                    $groupBy = "DATE(FROM_UNIXTIME(created_at))";
+                    break;
+            }
+
             $chartQuery = "
                 SELECT 
-                    DATE(FROM_UNIXTIME(created_at)) AS date_label,
+                    $dateSelect AS date_label,
                     COUNT(*) AS invoice_count,
                     IFNULL(SUM(amount), 0) AS total_sales
                 FROM invoices
                 $whereInvoices
-                    AND DATE(FROM_UNIXTIME(created_at)) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-                GROUP BY DATE(FROM_UNIXTIME(created_at))
-                ORDER BY DATE(FROM_UNIXTIME(created_at)) ASC
+                GROUP BY $groupBy
+                ORDER BY MIN(FROM_UNIXTIME(created_at)) ASC
             ";
             $stmt = $conn->prepare($chartQuery);
             foreach ($paramsInvoices as $k => $v) $stmt->bindValue($k, $v);
             $stmt->execute();
-            $chartResults = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $chartData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            $labels = [];
-            $invoiceCounts = [];
-            $salesValues = [];
-
-            for ($i = 6; $i >= 0; $i--) {
-                $date = date('Y-m-d', strtotime("-$i days"));
-                $day  = date('D', strtotime($date));
-                $labels[] = $day;
-                $record = array_values(array_filter($chartResults, fn($r) => $r['date_label'] === $date))[0] ?? null;
-                $invoiceCounts[] = $record ? (int)$record['invoice_count'] : 0;
-                $salesValues[] = $record ? (float)$record['total_sales'] : 0.0;
-            }
+            $labels = array_column($chartData, 'date_label');
+            $invoiceCounts = array_map('intval', array_column($chartData, 'invoice_count'));
+            $salesValues = array_map('floatval', array_column($chartData, 'total_sales'));
 
             // ======================
-            // Final Data
-            // ======================
-            $records = [[
-                'totalInvoices'     => (int)($invoiceStats['total_invoices'] ?? 0),
-                'todayInvoices'     => (int)($invoiceStats['today_invoices'] ?? 0),
-                'yesterdayInvoices' => (int)($invoiceStats['yesterday_invoices'] ?? 0),
-                'totalBusiness'     => $totalBusiness,
-                'totalSales'        => number_format((float)($invoiceStats['total_sales'] ?? 0), 2),
-                'todaySales'        => number_format((float)($invoiceStats['today_sales'] ?? 0), 2),
-                'yesterdaySales'    => number_format((float)($invoiceStats['yesterday_sales'] ?? 0), 2),
-                'totalLogs'         => $totalLogs,
-                'recentInvoices'    => $recentInvoicesDesc = array_slice($recentInvoices, 0, 6),
-                'last7Days'         => [
-                    'labels'   => $labels,
-                    'invoices' => $invoiceCounts,
-                    'sales'    => $salesValues,
-                ]
-            ]];
-
-            // ======================
-            // Return Standardized Response
+            // FINAL OUTPUT
             // ======================
             return [
                 'status'   => true,
                 'httpCode' => 200,
-                'message'  => 'Dashboard stats fetched successfully.',
-                'data'     => ['records' => $records],
+                'message'  => ucfirst($period) . ' dashboard stats fetched successfully.',
+                'data'     => [
+                    'summary' => [
+                        'totalInvoices'     => (int)($summary['total_invoices'] ?? 0),
+                        'todayInvoices'     => (int)($summary['today_invoices'] ?? 0),
+                        'yesterdayInvoices' => (int)($summary['yesterday_invoices'] ?? 0),
+                        'totalSales'        => number_format((float)($summary['total_sales'] ?? 0), 2),
+                        'todaySales'        => number_format((float)($summary['today_sales'] ?? 0), 2),
+                        'yesterdaySales'    => number_format((float)($summary['yesterday_sales'] ?? 0), 2),
+                        'totalBusiness'     => $totalBusiness,
+                        'totalLogs'         => $totalLogs,
+                    ],
+                    'recentInvoices' => array_map(function ($invoice) {
+                        return [
+                            'invoiceId'     => $invoice['invoice_id'] ?? null,
+                            'invoiceNumber' => $invoice['invoice_number'] ?? null,
+                            'invoiceDate'   => $invoice['invoice_date'] ?? null,
+                            'name'          => $invoice['name'] ?? null,
+                            'amount'        => $invoice['amount'] ?? 0,
+                            'place'         => $invoice['place'] ?? null,
+                        ];
+                    }, $recentInvoices),
+                    'chart' => [
+                        'labels'   => $labels,
+                        'invoices' => $invoiceCounts,
+                        'sales'    => $salesValues,
+                        'period'   => $period,
+                        'fromDate' => $fromDate,
+                        'toDate'   => $toDate,
+                    ],
+                ],
                 'pagination' => [
                     'currentPage'  => $page,
                     'limit'        => $limit,

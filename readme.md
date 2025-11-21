@@ -1,6 +1,6 @@
-# 💡 Eye Light Opticals - Invoice Management Web Application
+# 💡 Optical Shop Invoice Management Web Application
 
-A modern web-based **Invoice Management System** built for **Eye Light Opticals** to simplify customer billing, track invoices, and manage user operations securely.  
+A modern web-based **Invoice Management System** built for **Eye Optical Shop** to simplify customer billing, track invoices, and manage user operations securely.  
 This application offers a clean UI, token-based authentication (JWT), and automatic request/response logging for complete operational transparency.
 
 ---
@@ -156,7 +156,7 @@ where fresh data and correct routing are critical.
 ## 🧾 Project Information
 
 - **Name:** Optical Shop Invoice Management Web Application
-- **Version:** 2.0
+- **Version:** 2.1
 - **Author:** Abishaek Duresh B
 - **Language:** HTML, JavaScript, CSS, PHP
 - **Library:** Bootstrap 5, Sweetalert2, Tabular JS, Font Awsome
@@ -165,6 +165,7 @@ where fresh data and correct routing are critical.
 
 See detailed version notes:
 
+- [v2.1](documents/v2.1.md)
 - [v2.0](documents/v2.0.md)
 - [v1.1](documents/v1.1.md)
 
