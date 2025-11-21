@@ -18,52 +18,89 @@ class JwtMiddleware
 
     public function __invoke(Request $request, RequestHandler $handler): Response
     {
-        // Get Authorization header
+        // === Get Authorization header ===
         $authHeader = $request->getHeaderLine('Authorization');
 
         if (empty($authHeader)) {
-            return $this->unauthorized("Authorization header missing");
+            return $this->unauthorized(
+                "Authorization header missing",
+                "The Authorization header must contain a valid Bearer token."
+            );
         }
 
-        // Validate Bearer prefix
+        // === Validate Bearer prefix ===
         if (stripos($authHeader, 'Bearer ') !== 0) {
-            return $this->unauthorized("Authorization header must start with 'Bearer '");
+            return $this->unauthorized(
+                "Invalid Authorization header format",
+                "Header must start with 'Bearer ' followed by the token."
+            );
         }
 
         $token = trim(substr($authHeader, 7)); // remove "Bearer " prefix
 
         if (!$token) {
-            return $this->unauthorized("JWT token missing after 'Bearer ' prefix");
+            return $this->unauthorized(
+                "JWT token missing",
+                "Ensure you include a token after 'Bearer '."
+            );
         }
 
-        try {
-            $decoded = $this->jwtHelper->verifyToken($token);
-        } catch (\Exception $e) {
-            return $this->unauthorized("Invalid or expired token");
+        // === Verify Token via Helper ===
+        $verification = $this->jwtHelper->verifyToken($token);
+
+        // If verifyToken returns array (with status)
+        if (is_array($verification) && !$verification['status']) {
+            return $this->unauthorized(
+                $verification['message'] ?? 'Invalid or expired token',
+                $verification['help'] ?? 'Please log in again to obtain a new token.',
+                $verification['error'] ?? null,
+                $verification['httpCode'] ?? 401
+            );
         }
 
-        if (!$decoded) {
-            return $this->unauthorized("Invalid or expired token", $decoded);
+        // Handle unexpected verification result
+        if (empty($verification) || (is_array($verification) && empty($verification['data']))) {
+            return $this->unauthorized(
+                'Token verification failed.',
+                'Please reauthenticate and try again.'
+            );
         }
 
-        // Attach decoded JWT payload to request
-        $request = $request->withAttribute('jwt', $decoded);
+        // === Attach decoded JWT payload to request ===
+        $decodedData = is_array($verification) ? $verification['data'] : $verification;
+        $request = $request->withAttribute('jwt', $decodedData['jwt'] ?? 'JWT');
+        $request = $request->withAttribute('userId', $decodedData['userId'] ?? 'UserID');
+        $request = $request->withAttribute('businessId', $decodedData['businessId'] ?? 'BusinessID');
 
-        // Pass request to next middleware/controller
+        // === Continue request flow ===
         return $handler->handle($request);
     }
 
-    private function unauthorized(string $message, $decoded = null): Response
-    {
+    /**
+     * Return a detailed 401 Unauthorized response
+     */
+    private function unauthorized(
+        string $message,
+        ?string $help = null,
+        ?string $error = null,
+        int $statusCode = 401
+    ): Response {
         $response = new SlimResponse();
-        $response->getBody()->write(json_encode([
+
+        $payload = [
             'status'  => false,
             'message' => $message,
-            'help'    => 'Please logout, try again'
-        ]));
+            'help'    => $help ?? 'Please logout and login again.',
+        ];
+
+        if (!empty($error)) {
+            $payload['error'] = $error;
+        }
+
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
         return $response
             ->withHeader('Content-Type', 'application/json')
-            ->withStatus(401);
+            ->withStatus($statusCode);
     }
 }

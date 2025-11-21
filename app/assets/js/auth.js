@@ -40,19 +40,86 @@ $(document).ready(function () {
           "Login successful";
 
         if (response.status) {
-          Swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "success",
-            title: msg,
-            showConfirmButton: false,
-            timer: 1500,
-            timerProgressBar: true,
-            didClose: () => {
-              window.location.href = HOST_ROUTE_PATH + "/dashboard";
+          // Proceed to fetch business info
+          const params = {
+            id: "B3E531BB14BC",
+          };
+
+          apiRequest(
+            "GET",
+            "/api/business",
+            params,
+            false,
+            function (businessResponse) {
+              console.log(businessResponse);
+              const businessMsg =
+                msg ||
+                businessResponse.message ||
+                "Business info fetched successfully";
+
+              if (businessResponse.status) {
+                // Store business info in localStorage
+                sessionStorage.setItem(
+                  "businessInfo",
+                  JSON.stringify(businessResponse.data.records[0])
+                );
+
+                Swal.fire({
+                  toast: true,
+                  position: "top-end",
+                  icon: "success",
+                  title: businessMsg,
+                  showConfirmButton: false,
+                  timer: 1500,
+                  timerProgressBar: true,
+                  didClose: () => {
+                    window.location.href = HOST_ROUTE_PATH + "/dashboard";
+                  },
+                });
+              } else {
+                // Business fetch failed
+                Swal.fire({
+                  toast: true,
+                  position: "top-end",
+                  icon: "error",
+                  title: businessMsg || "Failed to fetch business info",
+                  showConfirmButton: false,
+                  timer: 1500,
+                  timerProgressBar: true,
+                  didClose: () => {
+                    // Redirect to login after short delay
+                    setTimeout(() => {
+                      window.location.href = HOST_ROUTE_PATH + "/login";
+                    }, 300);
+                  },
+                });
+
+                $loginBtn.prop("disabled", false).html("Login");
+              }
             },
-          });
+            function (xhr, status, error) {
+              $loginBtn.prop("disabled", false).html("Login");
+
+              let msg = "Server error. Please try again.";
+
+              try {
+                const res = JSON.parse(xhr.responseText);
+                if (res.message) msg = res.message;
+              } catch (e) {}
+
+              Swal.fire({
+                toast: true,
+                position: "top-end",
+                icon: "error",
+                title: msg,
+                showConfirmButton: false,
+                timer: 1500,
+                timerProgressBar: true,
+              });
+            }
+          );
         } else {
+          // Login failed
           $loginBtn.prop("disabled", false).html("Login");
 
           Swal.fire({
@@ -67,18 +134,15 @@ $(document).ready(function () {
         }
       },
       function (xhr, status, error) {
-        // Restore button
+        // Network or server error
         $loginBtn.prop("disabled", false).html("Login");
 
         let msg = "Server error. Please try again.";
 
-        // Try to parse JSON error response (like 401)
         try {
           const res = JSON.parse(xhr.responseText);
           if (res.message) msg = res.message;
-        } catch (e) {
-          //   console.error("Error parsing API error response:", e);
-        }
+        } catch (e) {}
 
         Swal.fire({
           toast: true,
@@ -89,8 +153,6 @@ $(document).ready(function () {
           timer: 1500,
           timerProgressBar: true,
         });
-
-        // console.error("API Error:", status, error, xhr.responseText);
       }
     );
   });

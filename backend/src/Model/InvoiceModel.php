@@ -23,157 +23,116 @@ class InvoiceModel
         $this->uniqueIdHelper  = new UniqueIdHelper();
     }
 
-    public function genInvoiceId(): array
-    {
-        $conn = $this->pdo->getConnection();
-        $conn->beginTransaction(); // Start transaction
-
-        try {
-            // Fetch all invoices where invoice_id is NULL or empty
-            $selectStmt = $conn->prepare("SELECT * FROM invoices");
-            //  WHERE invoice_id IS NULL OR invoice_id = ''
-            $selectStmt->execute();
-
-            // Check if any invoice needs update
-            if ($selectStmt->rowCount() === 0) {
-                $conn->rollBack();
-                return [
-                    'status' => false,
-                    'message' => 'No invoices to update',
-                    'httpCode' => 404,
-                ];
-            }
-
-            // Prepare the update statement once
-            $updateStmt = $conn->prepare("UPDATE invoices SET invoice_id = :invoice_id, created_at = :created_at WHERE id = :id");
-            // $updateStmt = $conn->prepare("UPDATE invoices SET invoice_id = :invoice_id, invoice_date = :invoice_date, dob = :dob, created_at = :created_at WHERE id = :id");
-
-            // Loop through all invoices that need an invoice_id
-            while ($invoice = $selectStmt->fetch(PDO::FETCH_ASSOC)) {
-                $uniqueId = $this->uniqueIdHelper->generate(12, ''); // Generate unique ID for each invoice
-                $created_at = $this->timestampHelper->timestampToUnix($invoice['invoice_date'] . ' ' . '00:00:00');
-                // $dob_age = $this->timestampHelper->timestampToUnix($invoice['invoice_date'] . ' ' . '00:00:00');
-                // $invoice_date = isset($invoice['invoice_date']) ? $this->timestampHelper->timestampToUnix($invoice['invoice_date']) : null;
-                // $dob = isset($invoice['dob']) ? $this->timestampHelper->timestampToUnix($invoice['dob']) : null;
-                $updateStmt->execute([
-                    ':invoice_id' => $uniqueId,
-                    ':id' => $invoice['id'],
-                    // ':invoice_date' => $invoice_date,
-                    ':created_at' => $created_at,
-                    // ':dob' => $dob
-                ]);
-            }
-
-            $conn->commit();
-
-            return [
-                'status' => true,
-                'message' => 'Invoices updated with unique invoice IDs successfully',
-                'httpCode' => 200,
-            ];
-
-        } catch (PDOException $e) {
-            if ($conn->inTransaction()) {
-                $conn->rollBack();
-            }
-            return [
-                'status' => false,
-                'message' => 'Database Error: ' . $e->getMessage(),
-                'httpCode' => 500,
-            ];
-        } finally {
-            $this->pdo->disconnect();
-        }
-    }
-
     public function getInvoice(array $data)
     {
         $conn = $this->pdo->getConnection();
 
         try {
+            // === Input parameters ===
             $searchQuery   = $data['searchQuery'] ?? null;
             $invoiceId     = $data['invoiceId'] ?? null;
             $phone         = $data['phone'] ?? null;
-            $invoiceNumber = $data['invocieNumber'] ?? null;
+            $invoiceNumber = $data['invoiceNumber'] ?? null;
             $invoiceType   = $data['invoiceType'] ?? null;
             $place         = $data['place'] ?? null;
             $dob           = $data['dob'] ?? null;
             $fromDate      = $data['fromDate'] ?? null;
             $toDate        = $data['toDate'] ?? null;
             $status        = $data['status'] ?? 'active';
-            $order         = $data['order'] ?? 'DESC';
             $page          = max(1, (int)($data['page'] ?? 1));
-            $limit         = (int)($data['limit'] ?? 25);
-            $offset        = ($page - 1) * $limit;
+            $limit         = isset($data['limit']) && (int)$data['limit'] > 0 ? (int)$data['limit'] : null;
+            $offset        = $limit ? ($page - 1) * $limit : null;
 
+            // === Safe ORDER BY ===
+            $allowedOrderBy = [
+                'id', 'invoice_id', 'invoice_number', 'invoice_date',
+                'name', 'place', 'amount', 'created_at'
+            ];
+            $orderBy = in_array($data['orderBy'] ?? 'id', $allowedOrderBy, true)
+                ? $data['orderBy']
+                : 'id';
+
+            $order = strtoupper(trim($data['order'] ?? 'DESC'));
+            $order = ($order === 'ASC') ? 'ASC' : 'DESC';
+
+            // === Base filter ===
             $params = [];
             $where = " WHERE 1=1 ";
 
-            // Dynamic filters
+            // === Dynamic filters ===
             if (!empty($searchQuery)) {
                 $where .= " AND (name LIKE :name OR place LIKE :place OR phone LIKE :phone)";
-                $params[':name'] = trim($searchQuery) . '%';
+                $params[':name']  = trim($searchQuery) . '%';
                 $params[':place'] = trim($searchQuery) . '%';
                 $params[':phone'] = trim($searchQuery) . '%';
             }
+
             if (!empty($invoiceId)) {
                 $where .= " AND invoice_id LIKE :invoiceId";
                 $params[':invoiceId'] = trim($invoiceId) . '%';
             }
+
             if (!empty($phone)) {
                 $where .= " AND phone = :phoneExact";
-                $params[':phoneExact'] = $phone;
+                $params[':phoneExact'] = trim($phone);
             }
+
             if (!empty($invoiceNumber)) {
                 $where .= " AND invoice_number = :invoiceNumber";
-                $params[':invoiceNumber'] = $invoiceNumber;
+                $params[':invoiceNumber'] = trim($invoiceNumber);
             }
+
             if (!empty($invoiceType)) {
                 $where .= " AND invoice_type = :invoiceType";
-                $params[':invoiceType'] = $invoiceType;
+                $params[':invoiceType'] = trim($invoiceType);
             }
+
             if (!empty($place)) {
                 $where .= " AND place LIKE :placeExact";
                 $params[':placeExact'] = trim($place) . '%';
             }
+
             if (!empty($dob)) {
                 $where .= " AND dob = :dob";
                 $params[':dob'] = $dob;
             }
+
             if (!empty($fromDate) && !empty($toDate)) {
                 $where .= " AND invoice_date BETWEEN :fromDate AND :toDate";
                 $params[':fromDate'] = $fromDate;
-                $params[':toDate'] = $toDate;
-            }
-            if (empty($status)) {
-                $where .= " AND invoice_status != :status";
-                $params[':status'] = 'deleted';
-            } elseif(!empty($status)) {
-                $where .= " AND invoice_status = :status";
-                $params[':status'] = trim($status);
+                $params[':toDate']   = $toDate;
             }
 
-            // Count total records
+            // === Status Filter ===
+            if (!empty($status)) {
+                $where .= " AND invoice_status = :status";
+                $params[':status'] = trim($status);
+            } else {
+                $where .= " AND invoice_status != :status";
+                $params[':status'] = 'deleted';
+            }
+
+            // === Count total ===
             $countQuery = "SELECT COUNT(*) FROM invoices " . $where;
             $countStmt = $conn->prepare($countQuery);
             foreach ($params as $key => $value) {
                 $countStmt->bindValue($key, $value);
             }
             $countStmt->execute();
-            $totalRecords = (int)$countStmt->fetchColumn();
+            $totalRecords = (int) $countStmt->fetchColumn();
 
             if ($totalRecords === 0) {
                 return [
-                    'status' => false,
-                    'httpCode' => 404,
-                    'message' => 'No invoices found matching the criteria.',
-                    'data' => null
+                    'status'   => false,
+                    'httpCode' => 409,
+                    'message'  => 'No invoices found matching the criteria.',
+                    'data'     => null
                 ];
             }
 
-            // Fetch invoice data
-            $selectQuery = "SELECT * FROM invoices " . $where . " ORDER BY id " . $order ."";
-            if ($limit > 0) {
+            // === Build main query ===
+            $selectQuery = "SELECT * FROM invoices " . $where . " ORDER BY " . $orderBy . " " . $order;
+            if ($limit) {
                 $selectQuery .= " LIMIT :offset, :limit";
             }
 
@@ -181,7 +140,8 @@ class InvoiceModel
             foreach ($params as $key => $value) {
                 $selectStmt->bindValue($key, $value);
             }
-            if ($limit > 0) {
+
+            if ($limit) {
                 $selectStmt->bindValue(':offset', (int)$offset, \PDO::PARAM_INT);
                 $selectStmt->bindValue(':limit', (int)$limit, \PDO::PARAM_INT);
             }
@@ -189,36 +149,37 @@ class InvoiceModel
             $selectStmt->execute();
             $results = $selectStmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            $invoices = array_map(function($row) {
+            // === Transform and format ===
+            $invoices = array_map(function ($row) {
                 $age = $this->timestampHelper->calculateAge($row['dob'] ?? null, $row['invoice_date'] ?? null);
                 return [
                     'invoiceId'     => $row['invoice_id'],
-                    'invoiceType'     => isset($row['invoice_type']) ? ucwords(strtolower($row['invoice_type'])) : null,
+                    'invoiceType'   => isset($row['invoice_type']) ? ucwords(strtolower($row['invoice_type'])) : null,
                     'invoiceNumber' => $row['invoice_number'],
                     'invoiceDate'   => $row['invoice_date'],
                     'name'          => $row['name'],
-                    'phone'        => $row['phone'],
+                    'phone'         => $row['phone'],
                     'dob'           => $row['dob'],
                     'age'           => $age,
                     'place'         => $row['place'],
                     'frame'         => $row['frame'],
                     'lence'         => $row['lence'],
-                    'power' => [
-                        'rSph'        => $row['r_sph'],
-                        'rCyl'         => $row['r_cyl'],
-                        'rAxis'        => $row['r_axis'],
-                        'rVia'         => $row['r_via'],
-                        'rAdd'         => $row['r_add'],
-                        'rPd'          => $row['r_pd'],
-                        'lSph'        => $row['l_sph'],
-                        'lCyl'         => $row['l_cyl'],
-                        'lAxis'        => $row['l_axis'],
-                        'lVia'         => $row['l_via'],
-                        'lAdd'         => $row['l_add'],
-                        'lPd'          => $row['l_pd'],
+                    'power'         => [
+                        'rSph'  => $row['r_sph'],
+                        'rCyl'  => $row['r_cyl'],
+                        'rAxis' => $row['r_axis'],
+                        'rVia'  => $row['r_via'],
+                        'rAdd'  => $row['r_add'],
+                        'rPd'   => $row['r_pd'],
+                        'lSph'  => $row['l_sph'],
+                        'lCyl'  => $row['l_cyl'],
+                        'lAxis' => $row['l_axis'],
+                        'lVia'  => $row['l_via'],
+                        'lAdd'  => $row['l_add'],
+                        'lPd'   => $row['l_pd'],
                     ],
                     'amount'        => $row['amount'],
-                    'offer'         => $row['offer'],
+                    'offer'         => $row['offer'] ?? '-',
                     'claim'         => $row['claim'],
                     'remark'        => $row['remark'],
                     'paymentMode'   => $row['payment_mode'],
@@ -227,27 +188,32 @@ class InvoiceModel
                 ];
             }, $results);
 
-            $totalPages = $limit > 0 ? ceil($totalRecords / $limit) : 1;
+            $totalPages = $limit ? ceil($totalRecords / $limit) : 1;
 
             return [
-                'status' => true,
+                'status'   => true,
                 'httpCode' => 200,
-                'message' => 'Invoices fetched successfully',
-                'data' => [
-                    'invoices' => $invoices
-                ],
+                'message'  => 'Invoices fetched successfully',
+                'data'     => ['invoices' => $invoices],
                 'pagination' => [
-                    'currentPage' => $page,
-                    'limit' => $limit,
-                    'totalPages' => $totalPages,
-                    'totalRecords' => $totalRecords
-                ]
+                    'currentPage'  => $page,
+                    'limit'        => $limit,
+                    'totalPages'   => $totalPages,
+                    'totalRecords' => $totalRecords,
+                ],
             ];
-
         } catch (\PDOException $e) {
-            return ['status' => false, 'httpCode' => 500, 'message' => 'Database error: ' . $e->getMessage()];
+            return [
+                'status'   => false,
+                'httpCode' => 500,
+                'message'  => 'Database error: ' . $e->getMessage(),
+            ];
         } catch (\Exception $e) {
-            return ['status' => false, 'httpCode' => 500, 'message' => 'Unexpected error: ' . $e->getMessage()];
+            return [
+                'status'   => false,
+                'httpCode' => 500,
+                'message'  => 'Unexpected error: ' . $e->getMessage(),
+            ];
         } finally {
             $this->pdo->disconnect();
         }
@@ -260,7 +226,7 @@ class InvoiceModel
 
         try {
             // Generate unique invoice ID
-            $uniqueInvoiceId = $this->uniqueIdHelper->generate(12, '');
+            $uniqueInvoiceId = $this->uniqueIdHelper->generate(8, '');
             $currentTimestamp = $this->timestampHelper->getCurrentUnixTimestamp();
             $currentDate = $this->timestampHelper->getFormattedTimestamp($currentTimestamp, 'Y-m-d');
 
@@ -389,7 +355,7 @@ class InvoiceModel
 
             // --- Check existence ---
             if (!$existingInvoice) {
-                return $this->fail($conn, 'Invoice not found', 404);
+                return $this->fail($conn, 'Invoice not found', 409);
             }
 
             // --- Deleted invoice check ---
@@ -521,7 +487,7 @@ class InvoiceModel
                 'data'     => [
                     'invoiceId' => $invoiceId,
                     'name' => $data['name'] ?? null,
-                    'updatedFields' => array_keys($data),
+                    // 'updatedFields' => array_keys($data),
                 ],
             ];
 
@@ -555,7 +521,7 @@ class InvoiceModel
                 return [
                     'status'   => false,
                     'message'  => 'Invoice not found',
-                    'httpCode' => 404,
+                    'httpCode' => 409,
                 ];
             }
 
@@ -619,6 +585,110 @@ class InvoiceModel
                 'message'  => 'Database Error: ' . $e->getMessage(),
                 'httpCode' => 500,
             ];
+        } finally {
+            $this->pdo->disconnect();
+        }
+    }
+
+    public function getSharedInvoice(array $data)
+    {
+        $conn = $this->pdo->getConnection();
+
+        try {
+            $invoiceId     = $data['invoiceId'] ?? null;
+
+            $params = [];
+            $where = " WHERE 1=1 ";
+
+            if (!empty($invoiceId)) {
+                $where .= " AND invoice_id = :invoiceId";
+                $params[':invoiceId'] = trim($invoiceId);
+            }
+
+            if(!empty($status)) {
+                $where .= " AND invoice_status = :status";
+                $params[':status'] = trim($status);
+            }
+
+            // Fetch invoice data
+            $selectQuery = "SELECT * FROM invoices " . $where . "";
+
+            $selectStmt = $conn->prepare($selectQuery);
+            foreach ($params as $key => $value) {
+                $selectStmt->bindValue($key, $value);
+            }
+            $selectStmt->execute();
+            $results = $selectStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if(empty($results)) {
+                return [
+                    'status' => false,
+                    'httpCode' => 409,
+                    'message' => 'Invoices not found',
+                    'data' => []
+                ];
+            }
+
+            if (!empty($results) && (null !== $results[0]['invoice_status']) && $results[0]['invoice_status'] !== 'active') {
+                return [
+                    'status' => false,
+                    'httpCode' => 403,
+                    'message' => 'Sharing this invoice is not allowed.',
+                    'data' => []
+                ];
+            }
+
+            $invoices = array_map(function($row) {
+                $age = $this->timestampHelper->calculateAge($row['dob'] ?? null);
+                return [
+                    'invoiceId'     => $row['invoice_id'],
+                    'invoiceType'     => isset($row['invoice_type']) ? ucwords(strtolower($row['invoice_type'])) : null,
+                    'invoiceNumber' => $row['invoice_number'],
+                    'invoiceDate'   => $row['invoice_date'],
+                    'name'          => $row['name'],
+                    'phone'        => $row['phone'],
+                    'dob'           => $row['dob'],
+                    'age'           => $age,
+                    'place'         => $row['place'],
+                    'frame'         => $row['frame'],
+                    'lence'         => $row['lence'],
+                    'power' => [
+                        'rSph'        => $row['r_sph'],
+                        'rCyl'         => $row['r_cyl'],
+                        'rAxis'        => $row['r_axis'],
+                        'rVia'         => $row['r_via'],
+                        'rAdd'         => $row['r_add'],
+                        'rPd'          => $row['r_pd'],
+                        'lSph'        => $row['l_sph'],
+                        'lCyl'         => $row['l_cyl'],
+                        'lAxis'        => $row['l_axis'],
+                        'lVia'         => $row['l_via'],
+                        'lAdd'         => $row['l_add'],
+                        'lPd'          => $row['l_pd'],
+                    ],
+                    'amount'        => $row['amount'],
+                    'offer'         => $row['offer'],
+                    'claim'         => $row['claim'],
+                    'remark'        => $row['remark'],
+                    'paymentMode'   => isset($row['payment_mode']) ? $row['payment_mode'] : null,
+                    // 'invoiceStatus' => $row['invoice_status'],
+                    'createdAt'     => $row['created_at'],
+                ];
+            }, $results);
+
+            return [
+                'status' => true,
+                'httpCode' => 200,
+                'message' => 'Shared invoices fetched successfully',
+                'data' => [
+                    'invoices' => $invoices
+                ]
+            ];
+
+        } catch (\PDOException $e) {
+            return ['status' => false, 'httpCode' => 500, 'message' => 'Database error: ' . $e->getMessage()];
+        } catch (\Exception $e) {
+            return ['status' => false, 'httpCode' => 500, 'message' => 'Unexpected error: ' . $e->getMessage()];
         } finally {
             $this->pdo->disconnect();
         }

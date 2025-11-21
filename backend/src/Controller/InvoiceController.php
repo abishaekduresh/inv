@@ -14,23 +14,6 @@ class InvoiceController
         $this->invoiceModel = new invoiceModel();
     }
 
-    public function genInvoiceId(Request $request, Response $response, array $args): Response
-    {
-        try {
-            $payloadFormatted = null;
-
-            $result = $this->invoiceModel->genInvoiceId($payloadFormatted);
-            return $this->jsonResponse($response, $result);
-
-        } catch (\Throwable $e) {
-            return $this->jsonResponse($response, [
-                'status'   => false,
-                'message'  => 'Server Error: ' . $e->getMessage(),
-                'httpCode' => 500,
-            ]);
-        }
-    }
-
     public function getInvoice(Request $request, Response $response, array $args): Response 
     {
         $queryParams = $request->getQueryParams();
@@ -47,9 +30,10 @@ class InvoiceController
             'toDate'            => !empty($queryParams['tod']) ? date('Y-m-d', strtotime($queryParams['tod'])) : null,
             'dob'               => !empty($queryParams['dob']) ? date('Y-m-d', strtotime($queryParams['dob'])) : null,
             'status'            => isset($queryParams['sts']) ? (string) strtolower($queryParams['sts']) : null,
+            'orderBy'           => isset($queryParams['ordby']) ? strtolower($queryParams['ordby']) : 'id',
             'order'             => isset($queryParams['ord']) ? strtoupper($queryParams['ord']) : 'DESC',
             'page'              => (int)($queryParams['page'] ?? 1),
-            'limit'             => (int)($queryParams['limit'] ?? 25),
+            'limit'             => (int)($queryParams['limit'] ?? null),
         ];
         
         // Validate phone number
@@ -423,6 +407,29 @@ class InvoiceController
                 'httpCode' => 500,
             ]);
         }
+    }
+
+    public function getSharedInvoice(Request $request, Response $response, array $args): Response 
+    {
+        $queryParams = $request->getQueryParams();
+        $invoiceId = $queryParams['id'] ?? $invoiceId;
+        if (!$invoiceId) {
+            return $this->jsonResponse($response, [
+                'status'   => false,
+                'message'  => 'Missing invoiceId in URL',
+                'httpCode' => 422,
+            ]);
+        }
+
+        // Extract filters
+        $data = [
+            'invoiceId'         => isset($invoiceId) ? (string) $invoiceId : null,
+            'invoice_status'    => 'active'
+        ];
+
+        $result = $this->invoiceModel->getSharedInvoice($data);
+
+        return $this->jsonResponse($response, $result);
     }
 
     /**

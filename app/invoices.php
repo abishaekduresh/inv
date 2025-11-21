@@ -15,9 +15,8 @@ include_once 'header.php';
                         <div class="d-flex justify-content-between align-items-center flex-wrap">
                             <div>
                                 <h1 class="h3 mb-1 fw-semibold">
-                                    <i class="bi bi-people-fill me-2"></i> Manage Invoices
+                                    <i class="bi bi-receipt"></i> Manage Invoices
                                 </h1>
-                                <p class="text-white-50 mb-0">View, Create, and Manage Optical Invoices</p>
                             </div>
                             <button class="btn btn-light fw-semibold px-4 mt-3 mt-md-0" data-bs-toggle="modal" data-bs-target="#createInvoiceStaticBackdropModal">
                                 <i class="bi bi-plus-circle me-2"></i> Add New Invoice
@@ -30,71 +29,87 @@ include_once 'header.php';
 
         <!-- Filters -->
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body pb-2">
-                <form id="invoiceFilterForm" class="row g-3">
+        <div class="card-body pb-2">
+            <form id="invoiceFilterForm" class="row gy-3 gx-2 align-items-end" autocomplete="off">
 
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Invoice ID</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="bi bi-receipt"></i></span>
-                            <input type="text" class="form-control" id="invoiceIdInput" placeholder="Search by ID">
-                        </div>
-                    </div>
-
-                    <div class="col-md-1 d-grid align-self-end">
-                        <button type="button" id="searchInvBtn" class="btn btn-primary">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </div>
-
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Customer / Phone</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="bi bi-person-vcard"></i></span>
-                            <input type="text" class="form-control" id="searchInput" placeholder="Search...">
-                        </div>
-                    </div>
-
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Invoice Number</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="bi bi-hash"></i></span>
-                            <input type="number" class="form-control" id="invoiceNumberInput" placeholder="Search by number">
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Invoice Type</label>
-                        <select class="form-select" id="invoiceTypeFilter">
-                            <option value="">All Types</option>
-                            <optgroup label="Optical Products">
-                                <option value="spectacles">Spectacles</option>
-                                <option value="frames">Frames Only</option>
-                                <option value="lenses">Lenses Only</option>
-                                <option value="contact lenses">Contact Lenses</option>
-                                <option value="sunglasses">Sunglasses</option>
-                                <option value="accessories">Accessories</option>
-                            </optgroup>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-1">
-                        <label class="form-label fw-semibold">Status</label>
-                        <select class="form-select" id="invoiceStatusFilter">
-                            <option value="">All</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-1 d-grid align-self-end">
-                        <button type="button" id="resetFilterBtn" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-counterclockwise"></i>
-                        </button>
-                    </div>
-                </form>
+            <!-- Invoice ID -->
+            <div class="col-12 col-sm-6 col-md-3 col-lg-2">
+                <label class="form-label fw-semibold small text-muted mb-1">Invoice ID</label>
+                <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-receipt"></i></span>
+                <input type="text" class="form-control" id="invoiceIdInput" placeholder="Search by ID">
+                </div>
             </div>
+
+            <!-- Customer / Phone -->
+            <div class="col-12 col-sm-6 col-md-3 col-lg-2">
+                <label class="form-label fw-semibold small text-muted mb-1">Customer / Phone</label>
+                <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-person-vcard"></i></span>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search...">
+                </div>
+            </div>
+
+            <!-- Invoice Number -->
+            <div class="col-12 col-sm-6 col-md-3 col-lg-2">
+                <label class="form-label fw-semibold small text-muted mb-1">Invoice Number</label>
+                <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-hash"></i></span>
+                <input type="number" class="form-control" id="invoiceNumberInput" placeholder="Search by number">
+                </div>
+            </div>
+
+            <!-- Invoice Type -->
+            <div class="col-12 col-sm-6 col-md-3 col-lg-2">
+                <label class="form-label fw-semibold small text-muted mb-1">Invoice Type</label>
+                <select class="form-select form-select-sm" id="invoiceTypeFilter">
+                <option value="">All Types</option>
+                <optgroup label="Optical Products">
+                    <option value="spectacles">Spectacles</option>
+                    <option value="frames">Frames Only</option>
+                    <option value="lenses">Lenses Only</option>
+                    <option value="contact lenses">Contact Lenses</option>
+                    <option value="sunglasses">Sunglasses</option>
+                    <option value="accessories">Accessories</option>
+                </optgroup>
+                <option value="other">Other</option>
+                </select>
+            </div>
+
+            <!-- Status -->
+            <div class="col-6 col-sm-4 col-md-2 col-lg-1">
+                <label class="form-label fw-semibold small text-muted mb-1">Status</label>
+                <select class="form-select form-select-sm" id="invoiceStatusFilter">
+                <option value="">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                </select>
+            </div>
+
+            <!-- Order By -->
+            <div class="col-6 col-sm-4 col-md-2 col-lg-1">
+                <label class="form-label fw-semibold small text-muted mb-1">Order By</label>
+                <select class="form-select form-select-sm" id="invoiceOrderFilter">
+                <option value="invoice_Number">Inv No.</option>
+                <option value="invoice_Date">Date</option>
+                </select>
+            </div>
+
+            <!-- Buttons -->
+            <div class="col-6 col-sm-4 col-md-1 d-grid">
+                <button type="button" id="searchInvBtn" class="btn btn-sm btn-primary">
+                <i class="bi bi-search"></i>
+                </button>
+            </div>
+
+            <div class="col-6 col-sm-4 col-md-1 d-grid">
+                <button type="button" id="resetFilterBtn" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+            </div>
+
+            </form>
+        </div>
         </div>
 
         <!-- Invoices Table -->
@@ -105,36 +120,11 @@ include_once 'header.php';
             </div>
 
             <div class="card-body p-0">
-                <div class="table-responsive d-none d-md-block">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Inv ID</th>
-                                <th>Inv No.</th>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Name</th>
-                                <th>Phone</th>
-                                <th>Place</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="invoicesTableBody"></tbody>
-                    </table>
-                </div>
-
-                <!-- Mobile Cards -->
-                <div class="d-md-none p-2" id="invoicesCardsContainer"></div>
-
-                <!-- Empty State -->
-                <div class="text-center py-5 d-none" id="emptyState">
-                    <i class="bi bi-file-earmark-x display-4 text-muted"></i>
-                    <h4 class="text-muted mt-2">No Invoices Found</h4>
-                    <p class="text-muted">Try adjusting your search criteria</p>
+                <div class="table-responsive">
+                    <div id="invoicesTable" class="table table-hover mb-0 align-middle"></div>
                 </div>
             </div>
+
         </div>
 
         <nav aria-label="Invoice pagination" class="mt-3">
@@ -144,19 +134,7 @@ include_once 'header.php';
 
     <!-- Optical Picker -->
     <div id="optical-picker" 
-        style="
-            display:none; 
-            position:absolute; 
-            background:#fff; 
-            border:1px solid #ddd; 
-            padding:10px; 
-            z-index:2000; 
-            max-width:200px;   /* Optional: set max width */
-            max-height:300px;  /* Control height */
-            overflow-y:auto;   /* Enable vertical scroll */
-            box-shadow:0 2px 10px rgba(0,0,0,0.2); 
-            border-radius:0.25rem;
-        ">
+        class="ptical-picker">
         <div id="optical-grid" class="d-flex flex-column gap-1"></div>
     </div>
 
@@ -337,7 +315,7 @@ include_once 'header.php';
                     <div class="row g-3 mb-2">
                         <div class="col-md-3">
                             <label for="createInvoiceAmount" class="form-label">Amount</label>
-                            <input type="number" step="0.01" class="form-control shadow-sm" id="createInvoiceAmount" name="createInvoiceAmount" placeholder="Enter amt">
+                            <input type="number" step="0.01" class="form-control shadow-sm" id="createInvoiceAmount" name="createInvoiceAmount" placeholder="Enter amount">
                         </div>
                         <div class="col-md-3">
                             <label for="createInvoicePaymentMode" class="form-label">Payment Mode</label>
@@ -361,10 +339,10 @@ include_once 'header.php';
 
             <!-- Modal Footer -->
             <div class="modal-footer justify-content-between shadow-sm">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-danger cancel-btn" data-bs-dismiss="modal">
                 <i class="fa-solid fa-ban"></i> Cancel
                 </button>
-                <button type="button" class="btn btn-success shadow-sm px-5" id="createInvoiceFormBtn">
+                <button type="button" class="btn btn-success shadow-sm px-5 save-btn" id="createInvoiceFormBtn">
                 <i class="fa-solid fa-square-plus"></i> Create Invoice
                 </button>
             </div>
@@ -490,7 +468,7 @@ include_once 'header.php';
 
                 <!-- Modal Footer -->
                 <div class="modal-footer justify-content-end">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-secondary cancel-btn" data-bs-dismiss="modal">
                         <i class="fa-solid fa-xmark"></i> Close
                     </button>
                 </div>
@@ -598,7 +576,8 @@ include_once 'header.php';
                             </div>
 
                             <div class="row g-3 mb-3">
-                                <div class="col-md-3">
+                                <div class="col-md-5"></div>
+                                <div class="col-md-1">
                                     <label for="updateInvoiceStatus" class="form-label">Status <span class="text-danger">*</span></label>
                                     <select class="form-select shadow-sm" id="updateInvoiceStatus" name="updateInvoiceStatus" required>
                                         <option value="" disabled selected>Select</option>
@@ -606,7 +585,6 @@ include_once 'header.php';
                                         <option value="inactive">Inactive</option>
                                     </select>
                                 </div>
-                                <div class="col-md-3"></div>
                                 <!-- Offer & Claim -->
                                 <div class="col-md-3">
                                     <label for="updateInvoiceOffer" class="form-label">Offer</label>
@@ -688,10 +666,10 @@ include_once 'header.php';
 
                 <!-- Modal Footer -->
                 <div class="modal-footer justify-content-between shadow-sm">
-                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-danger cancel-btn" data-bs-dismiss="modal">
                         <i class="fa-solid fa-ban"></i> Cancel
                     </button>
-                    <button type="button" class="btn btn-success shadow-sm px-5" id="updateInvoiceFormBtn">
+                    <button type="button" class="btn btn-success shadow-sm px-5 update-btn" id="updateInvoiceFormBtn">
                         <i class="fa-solid fa-floppy-disk"></i> Update Invoice
                     </button>
                 </div>
@@ -720,10 +698,10 @@ include_once 'header.php';
             
             <!-- Modal Footer -->
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-secondary cancel-btn" data-bs-dismiss="modal">
                 <i class="fa-solid fa-ban"></i> Cancel
                 </button>
-                <button type="button" class="btn btn-danger" id="deleteInvoiceBtn">
+                <button type="button" class="btn btn-danger delete-btn" id="deleteInvoiceBtn">
                 <i class="fa-solid fa-trash-can"></i> Delete
                 </button>
             </div>

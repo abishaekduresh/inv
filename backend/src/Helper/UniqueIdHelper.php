@@ -12,7 +12,12 @@ class UniqueIdHelper
      */
     public function generate(int $length = 12, string $prefix = ''): string
     {
-        $bytes = random_bytes(ceil($length / 2));
+        // Prevent invalid (too large) lengths
+        if ($length <= 0 || $length > 128) {
+            $length = 12; // fallback
+        }
+
+        $bytes = random_bytes((int)ceil($length / 2));
         $uniqueId = substr(bin2hex($bytes), 0, $length);
 
         return $prefix . strtoupper($uniqueId);
@@ -21,12 +26,21 @@ class UniqueIdHelper
     /**
      * Generate a timestamp-based unique code
      *
-     * @param string $prefix
+     * @param int|string $timestamp
+     * @param int $length Length of the random part
+     * @param string $prefix Optional prefix
+     * @param string $separator Optional separator
      * @return string
      */
-    public function generateWithTimestamp(string $prefix = ''): string
+    public function generateWithTimestamp($timestamp = '', int $length = 12, string $prefix = '', string $separator = '.'): string
     {
-        return $prefix . strtoupper(uniqid('', true));
+        // Ensure timestamp is string for prefix use
+        $timestampStr = (string)$timestamp;
+
+        // Proper argument order (prefix is timestamp + separator)
+        $random = $this->generate($length);
+
+        return $prefix . strtoupper($timestampStr . $separator . $random);
     }
 
     /**

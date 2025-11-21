@@ -31,10 +31,12 @@ class ApiHelper
         array $data = [],
         array $headers = [],
         array $query = [],
-        string $contentType = 'json'
+        string $contentType = 'json',
+        array $files = []   // files parameter
     ): array {
         $method = strtoupper($method);
 
+        // === Build query params ===
         if (!empty($query)) {
             $url .= (strpos($url, '?') === false ? '?' : '&') . http_build_query($query);
         }
@@ -49,62 +51,87 @@ class ApiHelper
             CURLOPT_TIMEOUT         => 30,
         ];
 
+        // === SSL config ===
         $isProduction = ($_ENV['APP_ENV'] ?? 'development') === 'production';
-        if ($isProduction) {
-            $curlOptions[CURLOPT_SSL_VERIFYPEER] = true;
-            $curlOptions[CURLOPT_SSL_VERIFYHOST] = 2;
-        } else {
-            $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
-            $curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
-        }
+        $curlOptions[CURLOPT_SSL_VERIFYPEER] = $isProduction;
+        $curlOptions[CURLOPT_SSL_VERIFYHOST] = $isProduction ? 2 : 0;
 
-        $headers[] = "Content-Type: application/json";
+        // === Auth header ===
         $token = $this->currentToken ?? ($_COOKIE['accessToken'] ?? null);
         if (!empty($token)) {
             $headers[] = "Authorization: Bearer {$token}";
         }
 
-        curl_setopt_array($ch, $curlOptions);
-
-        if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE']) && !empty($data)) {
+        // === Prepare payload based on content type ===
+        if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE']) && (!empty($data) || !empty($files))) {
             switch ($contentType) {
                 case 'json':
                     $payload = json_encode($data);
+                    $headers[] = "Content-Type: application/json";
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
                     break;
+
                 case 'form':
-                    $payload = $data;
+                    // Remove any existing Content-Type (so cURL sets multipart automatically)
                     $headers = array_filter($headers, fn($h) => !str_starts_with($h, 'Content-Type'));
+                    $formData = [];
+
+                    // Add form fields
+                    foreach ($data as $key => $value) {
+                        $formData[$key] = $value;
+                    }
+
+                    // ✅ Add file fields using CURLFile
+                    foreach ($files as $key => $file) {
+                        if (!empty($file['tmp_name']) && file_exists($file['tmp_name'])) {
+                            $formData[$key] = new \CURLFile(
+                                $file['tmp_name'],
+                                $file['type'] ?? 'application/octet-stream',
+                                $file['name'] ?? basename($file['tmp_name'])
+                            );
+                        }
+                    }
+
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $formData);
                     break;
+
                 case 'urlencoded':
                     $payload = http_build_query($data);
-                    $headers = array_map(fn($h) => str_starts_with($h, 'Content-Type') ? "Content-Type: application/x-www-form-urlencoded" : $h, $headers);
+                    $headers[] = "Content-Type: application/x-www-form-urlencoded";
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
                     break;
+
                 default:
                     throw new \InvalidArgumentException("Unsupported content type: {$contentType}");
             }
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         }
 
+        // === Set headers ===
         if (!empty($headers)) {
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         }
 
+        curl_setopt_array($ch, $curlOptions);
+
+        // === Execute request ===
         $response = curl_exec($ch);
         $error = curl_error($ch);
         $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         curl_close($ch);
 
+        // === Handle errors ===
         if ($response === false) {
             return [
-                'status'      => false,
-                'httpCode'    => $httpStatus ?: 502,
-                'body'        => null,
-                'headers'     => [],
-                'error'       => $error,
+                'status'   => false,
+                'httpCode' => $httpStatus ?: 502,
+                'body'     => null,
+                'headers'  => [],
+                'error'    => $error,
             ];
         }
 
+        // === Parse headers & body ===
         $rawHeaders = substr($response, 0, $headerSize);
         $body = substr($response, $headerSize);
 
@@ -122,11 +149,11 @@ class ApiHelper
         }
 
         return [
-            'status'      => $httpStatus >= 200 && $httpStatus < 300,
-            'httpCode'    => $httpStatus,
-            'body'        => $body,
-            'headers'     => $parsedHeaders,
-            'error'       => null,
+            'status'   => $httpStatus >= 200 && $httpStatus < 300,
+            'httpCode' => $httpStatus,
+            'body'     => $body,
+            'headers'  => $parsedHeaders,
+            'error'    => $error ?: null,
         ];
     }
 

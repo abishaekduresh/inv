@@ -70,7 +70,7 @@ class UserModel
             if ($totalRecords === 0) {
                 return [
                     'status' => false,
-                    'httpCode' => 404,
+                    'httpCode' => 409,
                     'message' => 'No user records found matching the criteria.',
                     'data' => null
                 ];
@@ -139,7 +139,7 @@ class UserModel
         $conn->beginTransaction(); // Start transaction
 
         try {
-            $uniqueId = $this->uniqueIdHelper->generate(12, '');
+            $uniqueId = $this->uniqueIdHelper->generate(8, '');
 
             // Single query to check conflicts
             $checkStmt = $conn->prepare("
@@ -240,6 +240,7 @@ class UserModel
     {
         $conn = $this->pdo->getConnection();
         $conn->beginTransaction(); // Start transaction
+        $reqUserId = $data['reqUserId'] ?? null;
 
         try {
             // Check if the user exists
@@ -252,7 +253,7 @@ class UserModel
                 return [
                     'status'   => false,
                     'message'  => 'User not found',
-                    'httpCode' => 404,
+                    'httpCode' => 200,
                 ];
             }
 
@@ -271,6 +272,15 @@ class UserModel
                     'status'   => false,
                     'message'  => 'Inactive user cannot be updated',
                     'httpCode' => 400,
+                ];
+            }
+
+            if(isset($data['status']) && $reqUserId === $userId && $existingUser['status'] === 'active' && $data['status'] !== 'active') {
+                $conn->rollBack();
+                return [
+                    'status'   => false,
+                    'message'  => 'Users cannot change their own status to inactive',
+                    'httpCode' => 403,
                 ];
             }
 
@@ -359,7 +369,7 @@ class UserModel
                 'data'     => [
                     'userId' => $userId,
                     'name'   => $data['name'] ?? $existingUser['name'],
-                    'updatedFields' => array_keys($data),
+                    // 'updatedFields' => array_keys($data),
                 ],
             ];
 
@@ -377,11 +387,21 @@ class UserModel
         }
     }
 
-    public function deleteUser(string $userId): array
+    public function deleteUser($data): array
     {
         $conn = $this->pdo->getConnection();
         $conn->beginTransaction();
+        $userId = $data['userId'] ?? null;
+        $reqUserId = $data['reqUserId'] ?? null;
 
+         if (empty($userId)) {
+            return [
+                'status'   => false,
+                'message'  => 'User ID is required',
+                'httpCode' => 400,
+            ];
+        }
+        
         try {
             // Check if the user exists
             $checkUserStmt = $conn->prepare("SELECT * FROM users WHERE user_id = :user_id LIMIT 1");
@@ -393,7 +413,7 @@ class UserModel
                 return [
                     'status'   => false,
                     'message'  => 'User not found',
-                    'httpCode' => 404,
+                    'httpCode' => 409,
                 ];
             }
 
@@ -402,6 +422,15 @@ class UserModel
                 return [
                     'status'   => false,
                     'message'  => 'User already deleted',
+                    'httpCode' => 400,
+                ];
+            }
+
+            if($reqUserId === $existingUser['user_id']) {
+                $conn->rollBack();
+                return [
+                    'status'   => false,
+                    'message'  => 'Users cannot delete their own account',
                     'httpCode' => 400,
                 ];
             }

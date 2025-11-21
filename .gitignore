@@ -1,17 +1,62 @@
-# Ignore vendor folders in both app and backend
-/app/backend/vendor/
-/backend/vendor/
+# ==============================
+# General PHP / Slim Framework
+# ==============================
 
-# Ignore .env files in both app and backend
-/app/.env
-/backend/.env
-
-# Alternatively, if you want a more generic pattern:
+# Composer vendor directories (app + backend)
+vendor/
 **/vendor/
+
+# Environment files (sensitive)
+.env
 **/.env
 
-/storage/*
-/uploads/*
-/logs/*
+# ==============================
+# Logs, Cache, and Temporary Files
+# ==============================
 
-/app/backend/logs/*
+# Common log/cache/temp folders
+logs/
+storage/
+uploads/
+tmp/
+
+# In case nested (backend/app have their own)
+**/logs/
+**/storage/
+**/uploads/
+**/tmp/
+
+# ==============================
+# Specific Project Structure
+# ==============================
+
+# App backend vendor
+/app/backend/vendor/
+# Backend vendor
+/backend/vendor/
+
+# App backend logs (explicit)
+/app/backend/logs/
+
+# ==============================
+# IDE / System Files
+# ==============================
+
+# VSCode, PhpStorm, etc.
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Node / Frontend (if applicable)
+# ==============================
+
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/

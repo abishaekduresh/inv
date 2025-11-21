@@ -17,3 +17,245 @@ input[type="number"] {
 .select2-container--bootstrap-5 .select2-selection__rendered {
   padding-left: 0.75rem;
 }
+
+/* === Corporate Blue Select2 Styling (Bootstrap 5 Theme - FIXED ALIGNMENT) === */
+
+/* Container & Selection Box */
+.select2-container--bootstrap-5 .select2-selection {
+  height: 50px !important;
+  border-radius: 0.5rem !important;
+  border: 2px solid #0d6efd !important;
+  background-color: #f8faff !important;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #0a4275;
+  transition: box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out;
+  display: flex !important;
+  align-items: center !important; /* ✅ Fix vertical alignment */
+  padding: 0 12px !important;
+}
+
+/* Text inside Select2 box (selected item or placeholder) */
+.select2-container--bootstrap-5 .select2-selection__rendered {
+  line-height: normal !important;
+  padding-left: 0 !important;
+  color: #0a4275 !important;
+  font-weight: 500 !important;
+}
+
+/* Clear (x) button */
+.select2-container--bootstrap-5 .select2-selection__clear {
+  color: #6c757d !important;
+  font-size: 1.1rem !important;
+  margin-right: 5px;
+}
+
+/* Dropdown Arrow */
+.select2-container--bootstrap-5 .select2-selection__arrow {
+  height: 100% !important;
+  right: 10px !important;
+  top: 0 !important;
+  display: flex;
+  align-items: center;
+}
+.select2-container--bootstrap-5 .select2-selection__arrow b {
+  border-color: #0d6efd transparent transparent transparent !important;
+}
+
+/* Hover & Focus */
+.select2-container--bootstrap-5 .select2-selection:hover,
+.select2-container--bootstrap-5.select2-container--focus .select2-selection {
+  border-color: #0a58ca !important;
+  box-shadow: 0 0 10px rgba(13, 110, 253, 0.4) !important;
+}
+
+/* Dropdown Menu */
+.select2-container--bootstrap-5 .select2-dropdown {
+  border: 2px solid #0d6efd !important;
+  border-radius: 0.5rem !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+  font-size: 1rem;
+  z-index: 2000 !important;
+  padding: 4px 0 !important;
+}
+
+/* Dropdown Option */
+.select2-container--bootstrap-5 .select2-results__option {
+  padding: 8px 12px !important;
+  color: #0a4275;
+}
+
+/* Option Hover */
+.select2-container--bootstrap-5 .select2-results__option:hover {
+  background-color: #0d6efd !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  transition: background-color 0.2s ease-in-out;
+}
+
+/* Highlighted (keyboard focused) */
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+  background-color: #0a58ca !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* Selected Option */
+.select2-container--bootstrap-5 .select2-results__option--selected {
+  background-color: #084298 !important;
+  color: #ffffff !important;
+  font-weight: bold;
+}
+
+/* Placeholder */
+.select2-container--bootstrap-5 .select2-selection__placeholder {
+  color: #6c757d !important;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Ensure dropdown appears above modal */
+.select2-container--bootstrap-5 {
+  z-index: 2000 !important;
+}
+
+/* Animation */
+.select2-dropdown {
+  animation: fadeInDropdown 0.15s ease-in-out;
+}
+
+@keyframes fadeInDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content {
+  /* margin-left: 230px; */
+  padding: 2rem;
+  transition: 0.3s;
+}
+
+.settings-card {
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+}
+
+.section-title {
+  font-weight: 600;
+  color: #2f3bff;
+  border-bottom: 2px solid #e5e5e5;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  font-weight: 500;
+}
+
+/* 🌈 Primary Save Button */
+.save-btn {
+  background: linear-gradient(90deg, #2f3bff, #00b7ff);
+  border: none;
+  color: #fff;
+  transition: 0.3s;
+}
+.save-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 3px 10px rgba(47, 59, 255, 0.3);
+}
+
+/* ✏️ Update Button */
+.update-btn {
+  background: linear-gradient(90deg, #007bff, #339cff);
+  border: none;
+  color: #fff;
+  transition: 0.3s;
+}
+.update-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 3px 10px rgba(0, 123, 255, 0.3);
+}
+
+/* ❌ Cancel Button */
+.cancel-btn {
+  background: linear-gradient(90deg, #6c757d, #a1a5aa);
+  border: none;
+  color: #fff;
+  transition: 0.3s;
+}
+.cancel-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 3px 10px rgba(108, 117, 125, 0.3);
+}
+
+/* 💬 WhatsApp Button */
+.whatsapp-btn {
+  background: linear-gradient(90deg, #25d366, #128c7e);
+  border: none;
+  color: #fff;
+  transition: 0.3s;
+}
+.whatsapp-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.35);
+}
+
+/* 👁️ View Button */
+.view-btn {
+  background: linear-gradient(90deg, #0dcaf0, #5ad3e6);
+  border: none;
+  color: #fff;
+  transition: 0.3s;
+}
+.view-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 3px 10px rgba(13, 202, 240, 0.3);
+}
+
+/* 🗑️ Delete Button */
+.delete-btn {
+  background: linear-gradient(90deg, #dc3545, #ff6b81);
+  border: none;
+  color: #fff;
+  transition: 0.3s;
+}
+.delete-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 3px 10px rgba(220, 53, 69, 0.3);
+}
+
+/* 🌍 Shared Styles for All Buttons */
+.save-btn,
+.update-btn,
+.cancel-btn,
+.whatsapp-btn,
+.view-btn,
+.delete-btn {
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+/* 🌈 Small Action Button Variant */
+.btn-action {
+  border: none;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.8rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+.btn-action i {
+  font-size: 0.9rem;
+}

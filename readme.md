@@ -36,58 +36,9 @@ This application offers a clean UI, token-based authentication (JWT), and automa
 | Web Server        | **Apache / Nginx**                       |
 | Language          | **PHP 8+**                               |
 | Frontend UI       | **HTML, CSS, JS, Bootstrap 5**           |
-| Logging           | **Custom ReqRes Logger Middleware**      |
+| Logging           | **Custom Activity Logger Middleware**    |
 
 ---
-
-## 🗂️ Project Structure
-
-📦 Eye-Light-Opticals/  
-│  
-├── 📁 app/ # Main application files  
-│ ├── 📁 assets/ # Frontend assets  
-│ │ ├── 📁 css/ # Stylesheets  
-│ │ ├── 📁 icon/ # App icons  
-│ │ ├── 📁 img/ # Images  
-│ │ ├── 📁 js/ # JavaScript files  
-│ │ └── 📁 lib/ # JS/CSS libraries  
-│ ├── 📁 backend/ # Slim 4 backend app  
-│ │ ├── 📁 public/ # Slim public entry (index.php)  
-│ │ ├── 📁 src/ # Core source (Controllers, Middleware, Helpers)  
-│ │ ├── 📄 composer.json # Composer dependencies  
-│ │ └── 📄 .htaccess  
-│ │  
-│ ├── 📁 backend/ # Slim 4 backend app  
-│ │── 📁 database/ # SQL migrations, seeds, etc.  
-│ │── 📁 assets/ # Frontend assets  
-│ │ ├── 📁 css/ # Stylesheets  
-│ │ ├── 📁 icon/ # App icons  
-│ │ ├── 📁 img/ # Images  
-│ │ ├── 📁 js/ # JavaScript files  
-│ │ └── 📁 lib/ # JS/CSS libraries  
-│ │── 📁 logs/ # Request/response logs  
-│ │── 📁 public/ # Slim public entry (index.php)  
-│ │── 📁 src/ # Core source (Controllers, Middleware, Helpers)  
-│ │── 📁 storage/ # Local storage / cache  
-│ └── 📁 uploads/ # Uploaded invoices or images  
-│  
-├── 📄 .env # Environment variables  
-├── 📄 composer.json # Composer dependencies  
-├── 📄 composer.lock  
-├── 📄 php.ini  
-├── 📄 .gitignore  
-├── 📄 .htaccess  
-├── 📄 .user.ini  
-│  
-├── 📄 common.php # Shared PHP utilities  
-├── 📄 dashboard.php # Main dashboard page  
-├── 📄 footer.php # Common footer  
-├── 📄 header.php # Common header/navigation  
-├── 📄 index.php # Entry page  
-├── 📄 invoices.php # Invoice management page  
-├── 📄 login.php # User login page  
-├── 📄 logout.php # Logout handler  
-└── 📄 users.php # User management page
 
 # 🔧 NGINX CONFIGURATION — PHP-FPM & CACHE CONTROL SETTINGS
 
@@ -198,7 +149,12 @@ where fresh data and correct routing are critical.
 ## 🧾 Project Information
 
 - **Name:** Eye Light Opticals - Invoice Management Web Application
-- **Version:** 1.0
-- **Author:** Abishaek Duresh
+- **Version:** 1.1.0
+- **Author:** Abishaek Duresh B
 - **Language:** HTML, JavaScript, CSS, PHP
 - **Library:** Bootstrap 5, Sweetalert2, Tabular JS, Font Awsome
+
+## 📜 Version History
+
+See detailed version notes:
+- [v1.1](documents/v1.1.md)

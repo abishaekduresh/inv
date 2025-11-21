@@ -7,10 +7,10 @@
 const protocol = window.location.protocol;
 const hostname = window.location.hostname;
 const port = window.location.port;
-const hostUrl = window.location.origin;
+const HOST_URL = window.location.origin;
 
 const HOST_ROUTE_PATH = "/app"; // Adjust if needed
-const BASE_API_URL = hostUrl + HOST_ROUTE_PATH + "/backend/public";
+const BASE_API_URL = HOST_URL + HOST_ROUTE_PATH + "/backend/public";
 
 /**
  * Get cookie value by name
@@ -33,6 +33,9 @@ function getCookie(name) {
  * @param {function} onSuccess Callback function on success
  * @param {function} onError Callback function on error
  */
+/**
+ * AJAX helper with delayed SweetAlert loader
+ */
 function apiRequest(
   method,
   url,
@@ -43,131 +46,98 @@ function apiRequest(
 ) {
   const httpMethod = method.toUpperCase();
   let fullUrl = BASE_API_URL + url;
+  const loaderKey = `apiRequest_${url}`;
 
-  // For GET requests, append query params
+  // Start a delayed loader (only shows if request takes >400ms)
+  setUniqueTimeout(
+    loaderKey,
+    () => {
+      Swal.fire({
+        title: "Loading...",
+        text: "Please wait while we process your request.",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
+    },
+    200
+  );
+
+  // For GET, append query params
   if (httpMethod === "GET" && data && typeof data === "object") {
     const queryString = new URLSearchParams(data).toString();
     fullUrl += "?" + queryString;
   }
 
+  // Core Ajax Options
   const ajaxOptions = {
     url: fullUrl,
     type: httpMethod,
-    dataType: "json",
+    processData: !isFormData,
+    contentType: isFormData ? false : "application/json",
+    dataType: "json", // expect JSON, but we’ll handle fallbacks safely
     success: function (response) {
+      clearTimeout(debounceTimers[loaderKey]);
+      Swal.close();
       if (onSuccess) onSuccess(response);
     },
     error: function (xhr, status, error) {
+      clearTimeout(debounceTimers[loaderKey]);
+      Swal.close();
+
+      let errorMessage = "Something went wrong!";
+      try {
+        // Try to extract JSON message safely
+        const res = xhr.responseJSON || JSON.parse(xhr.responseText);
+        errorMessage = res.message || errorMessage;
+      } catch {
+        // Fallback: show plain response or generic message
+        if (xhr.responseText?.startsWith("<!DOCTYPE")) {
+          errorMessage = "Server returned an unexpected HTML response.";
+        } else if (xhr.responseText) {
+          errorMessage = xhr.responseText;
+        }
+      }
+
+      Swal.fire({
+        icon: "error",
+        title: "Request Failed",
+        text: errorMessage,
+      });
+
       if (onError) onError(xhr, status, error);
     },
   };
 
-  // Only attach payload if data exists
+  // Payload (for non-GET)
   if (data !== null && !["GET"].includes(httpMethod)) {
     if (isFormData) {
       ajaxOptions.data = data;
       ajaxOptions.processData = false;
       ajaxOptions.contentType = false;
     } else {
-      ajaxOptions.data = JSON.stringify(data) ?? null;
+      ajaxOptions.data = JSON.stringify(data);
       ajaxOptions.contentType = "application/json";
     }
   }
 
+  // Execute
   $.ajax(ajaxOptions);
 }
 
-/** ===========================
- * Example Usage
- * =========================== */
-
-// 1️⃣ GET request
-// apiRequest(
-//   "GET",
-//   "/users",
-//   { s: "John", sts: "active", limit: 2 },
-//   false,
-//   function (res) {
-//     console.log("GET Success:", res);
-//   },
-//   function (xhr, status, err) {
-//     console.error("GET Error:", err);
-//   }
-// );
-
-// // 2️⃣ POST request (JSON)
-// apiRequest(
-//   "POST",
-//   "/users",
-//   { name: "John Doe", email: "john@example.com" },
-//   false,
-//   function (res) {
-//     console.log("POST Success:", res);
-//   },
-//   function (xhr, status, err) {
-//     console.error("POST Error:", err);
-//   }
-// );
-
-// // 3️⃣ POST request (FormData / file upload)
-// const formData = new FormData();
-// formData.append("name", "Jane Doe");
-// formData.append("avatar", document.querySelector("#avatarInput").files[0]);
-
-// apiRequest(
-//   "POST",
-//   "/users/upload",
-//   formData,
-//   true,
-//   function (res) {
-//     console.log("Upload Success:", res);
-//   },
-//   function (xhr, status, err) {
-//     console.error("Upload Error:", err);
-//   }
-// );
-
-// // 4️⃣ PUT request
-// apiRequest(
-//   "PUT",
-//   "/users/123",
-//   { name: "John Updated" },
-//   false,
-//   function (res) {
-//     console.log("PUT Success:", res);
-//   },
-//   function (xhr, status, err) {
-//     console.error("PUT Error:", err);
-//   }
-// );
-
-// // 5️⃣ PATCH request
-// apiRequest(
-//   "PATCH",
-//   "/users/123",
-//   { email: "john.new@example.com" },
-//   false,
-//   function (res) {
-//     console.log("PATCH Success:", res);
-//   },
-//   function (xhr, status, err) {
-//     console.error("PATCH Error:", err);
-//   }
-// );
-
-// // 6️⃣ DELETE request
-// apiRequest(
-//   "DELETE",
-//   "/users/123",
-//   null,
-//   false,
-//   function (res) {
-//     console.log("DELETE Success:", res);
-//   },
-//   function (xhr, status, err) {
-//     console.error("DELETE Error:", err);
-//   }
-// );
+// Convert apiRequest into Promise wrapper
+function apiRequestAsync(method, url, payload = {}, isAuth = false) {
+  return new Promise((resolve, reject) => {
+    apiRequest(
+      method,
+      url,
+      payload,
+      isAuth,
+      (res) => resolve(res),
+      (xhr) => reject(xhr)
+    );
+  });
+}
 
 function formatUnix(unix, format = "Y-m-d h:i:s") {
   const date = new Date(unix * 1000); // Convert seconds → ms

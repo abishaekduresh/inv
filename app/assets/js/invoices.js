@@ -2,9 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Global variables
   let invoiceIdToUpdate = null;
   let invoiceIdToDelete = null;
-  let selectedInput = null;
   let invoiceCurrentPage = 1;
-  const invoicePageSize = 10;
 
   // ==== INIT ====
   initInvoicesPage();
@@ -33,14 +31,13 @@ document.addEventListener("DOMContentLoaded", function () {
       "searchInput",
       "invoiceTypeFilter",
       "invoiceStatusFilter",
-      // "fromDate",
-      // "toDate",
       "invoiceNumberInput",
-      // "invoicePlaceInput",
     ].forEach((id) => (document.getElementById(id).value = ""));
 
     invoiceCurrentPage = 1;
     fetchInvoices();
+    // Show top toast notification
+    showToast("success", "Filters have been reset");
   });
 
   // ==== Initialize Search and Filter ====
@@ -48,22 +45,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("searchInput");
     const invoiceStatusFilter = document.getElementById("invoiceStatusFilter");
     const invoiceTypeFilter = document.getElementById("invoiceTypeFilter");
-    // const invoicePlaceInput = document.getElementById("invoicePlaceInput");
+    const invoiceOrderFilter = document.getElementById("invoiceOrderFilter");
     const invoiceNumberInput = document.getElementById("invoiceNumberInput");
     const invoiceIdInput = document.getElementById("invoiceIdInput");
-
-    // if (!searchInput || !invoiceStatusFilter) return;
 
     // --- Search as you type (with debounce) ---
     searchInput.addEventListener("keyup", () => {
       [
-        "invoiceIdInput",
         "invoiceTypeFilter",
         "invoiceStatusFilter",
-        // "fromDate",
-        // "toDate",
         "invoiceNumberInput",
-        // "invoicePlaceInput",
       ].forEach((id) => (document.getElementById(id).value = ""));
       const query = searchInput.value.trim();
       invoiceCurrentPage = 1;
@@ -77,29 +68,6 @@ document.addEventListener("DOMContentLoaded", function () {
         500
       ); // waits 0.5s after typing stops
     });
-    // Search by Place as you type (with debounce)
-    // invoicePlaceInput.addEventListener("keyup", () => {
-    //   [
-    //     "invoiceIdInput",
-    //     "invoiceTypeFilter",
-    //     "invoiceStatusFilter",
-    //     "searchInput",
-    //     "fromDate",
-    //     "toDate",
-    //     "invoiceNumberInput",
-    //   ].forEach((id) => (document.getElementById(id).value = ""));
-    //   const query = invoicePlaceInput.value.trim();
-    //   invoiceCurrentPage = 1;
-    //   setUniqueTimeout(
-    //     "invoicePlaceInput",
-    //     () => {
-    //       if (query.length >= 3 || query.length === 0) {
-    //         fetchInvoices();
-    //       }
-    //     },
-    //     500
-    //   ); // waits 0.5s after typing stops
-    // });
 
     // Search by Invoice ID as you type (with debounce)
     invoiceIdInput.addEventListener("keyup", () => {
@@ -107,10 +75,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "searchInput",
         "invoiceTypeFilter",
         "invoiceStatusFilter",
-        // "fromDate",
-        // "toDate",
         "invoiceNumberInput",
-        // "invoicePlaceInput",
       ].forEach((id) => (document.getElementById(id).value = ""));
       const query = invoiceIdInput.value.trim();
       invoiceCurrentPage = 1;
@@ -131,9 +96,6 @@ document.addEventListener("DOMContentLoaded", function () {
         "invoiceTypeFilter",
         "invoiceStatusFilter",
         "searchInput",
-        // "fromDate",
-        // "toDate",
-        // "invoicePlaceInput",
       ].forEach((id) => (document.getElementById(id).value = ""));
       const query = invoiceNumberInput.value.trim();
       invoiceCurrentPage = 1;
@@ -149,15 +111,17 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     invoiceStatusFilter.addEventListener("change", () => {
-      [
-        "invoiceIdInput",
-        "invoiceTypeFilter",
-        "searchInput",
-        // "invoiceNumberInput",
-        // "fromDate",
-        // "toDate",
-        // "invoicePlaceInput",
-      ].forEach((id) => (document.getElementById(id).value = ""));
+      ["invoiceIdInput", "invoiceTypeFilter", "searchInput"].forEach(
+        (id) => (document.getElementById(id).value = "")
+      );
+      invoiceCurrentPage = 1;
+      fetchInvoices();
+    });
+
+    invoiceOrderFilter.addEventListener("change", () => {
+      // ["invoiceIdInput", "invoiceTypeFilter", "searchInput"].forEach(
+      //   (id) => (document.getElementById(id).value = "")
+      // );
       invoiceCurrentPage = 1;
       fetchInvoices();
     });
@@ -168,9 +132,6 @@ document.addEventListener("DOMContentLoaded", function () {
         "invoiceStatusFilter",
         "searchInput",
         "invoiceNumberInput",
-        // "fromDate",
-        // "toDate",
-        // "invoicePlaceInput",
       ].forEach((id) => (document.getElementById(id).value = ""));
       invoiceCurrentPage = 1;
       fetchInvoices();
@@ -186,17 +147,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const invno = document.getElementById("invoiceNumberInput").value.trim();
     const invtype = document.getElementById("invoiceTypeFilter").value;
     const sts = document.getElementById("invoiceStatusFilter").value;
-    // const pl = document.getElementById("invoicePlaceInput").value;
+    const ordby = document.getElementById("invoiceOrderFilter").value;
 
     const params = {
       q,
       id,
       invno,
       invtype,
-      // pl,
+      ordby,
       sts,
       page: invoiceCurrentPage,
-      limit: invoicePageSize,
     };
 
     apiRequest(
@@ -208,7 +168,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const invoices = res.data?.invoices || [];
         const totalRecords = res.pagination?.totalRecords || 0;
         renderInvoicesTable(invoices, totalRecords);
-        renderPagination(totalRecords);
       },
       (xhr) => {
         let message = "Error fetching invoice.";
@@ -401,134 +360,219 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ==== Render Invoice Table ====
-  function renderInvoicesTable(invoices, totalRecords = 0) {
-    const tbody = document.getElementById("invoicesTableBody");
-    const mobileContainer = document.getElementById("invoicesCardsContainer");
-    const empty = document.getElementById("emptyState");
+  let invoiceTable = null;
+  function renderInvoicesTable(invoices = [], totalRecords = 0) {
     const count = document.getElementById("totalCount");
+    const empty = document.getElementById("emptyState");
 
-    if (!tbody || !mobileContainer || !count) return;
-
-    tbody.innerHTML = "";
-    mobileContainer.innerHTML = "";
+    if (!count) return;
     count.textContent = `${totalRecords} invoices`;
 
-    if (!invoices.length) {
-      empty.classList.remove("d-none");
+    if (!invoices || invoices.length === 0) {
+      empty?.classList.remove("d-none");
       return;
-    } else empty.classList.add("d-none");
+    } else {
+      empty?.classList.add("d-none");
+    }
 
-    invoices.forEach((inv, i) => {
-      const sn = (invoiceCurrentPage - 1) * invoicePageSize + i + 1;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${sn}</td>
-        <td>${inv.invoiceId}</td>
-        <td>${inv.invoiceNumber}</td>
-        <td>${formatTimestamp(inv.invoiceDate, "DD-MM-YYYY")}</td>
-        <td>${inv.invoiceType}</td>
-        <td>${StringUtils.toTitleCase(inv.name)}</td>
-        <td>${inv.phone}</td>
-        <td>${StringUtils.toTitleCase(inv.place)}</td>
-        <td><span class="badge ${
-          inv.invoiceStatus === "active" ? "bg-success" : "bg-secondary"
-        }">${StringUtils.capitalize(inv.invoiceStatus)}</span></td>
-        <td>
-          <button class="btn btn-sm btn-info me-1" data-id="${
-            inv.invoiceId
-          }"><i class="fa-solid fa-eye"></i></button>
-          <button class="btn btn-sm btn-primary me-1" data-id="${
-            inv.invoiceId
-          }"><i class="fa-solid fa-pen"></i></button>
-          <button class="btn btn-sm btn-danger" data-id="${
-            inv.invoiceId
-          }"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      `;
-      const [viewBtn, editBtn, delBtn] = tr.querySelectorAll("button");
-      viewBtn.addEventListener("click", () => viewInvoice(inv));
-      editBtn.addEventListener("click", () => updateInvoice(inv));
-      delBtn.addEventListener("click", () => openDeleteModal(inv));
-      tbody.appendChild(tr);
+    // Destroy old table if exists
+    if (invoiceTable) {
+      invoiceTable.destroy();
+      invoiceTable = null;
+    }
+
+    // Ensure container exists
+    const tableContainer = document.getElementById("invoicesTable");
+    if (!tableContainer) {
+      console.error("Missing #invoicesTable div!");
+      showToast("warning", "Missing #invoicesTable div!");
+      return;
+    }
+
+    // Initialize Tabulator on <div>, not <table>
+    invoiceTable = new Tabulator("#invoicesTable", {
+      data: invoices,
+      // layout: "fitColumns",
+      layout: "fitDataStretch",
+      pagination: "local",
+      responsiveLayout: "collapse",
+      placeholder: "No invoices found",
+      paginationSize: 10, // default per page
+      paginationSizeSelector: [10, 25, 50, 100, 500, 1000], // dropdown for limit selection
+      columnDefaults: {
+        hozAlign: "left",
+        headerHozAlign: "left",
+      },
+      columns: [
+        {
+          title: "#",
+          formatter: function (cell) {
+            const table = cell.getTable();
+            // Get the current table data (respecting current filters & sorting)
+            const allData = table.getData();
+            const rowData = cell.getRow().getData();
+
+            // Use unique key to find position (faster and safer than deep-equal)
+            const idx = allData.findIndex(
+              (d) => d.invoiceId === rowData.invoiceId
+            );
+
+            // If not found (defensive), fallback to 0
+            return idx >= 0 ? idx + 1 : "";
+          },
+          width: 60,
+          hozAlign: "center",
+        },
+        // { title: "Inv ID", field: "invoiceId", width: 150 },
+        {
+          title: "Inv #",
+          field: "invoiceNumber",
+          width: 90,
+        },
+        {
+          title: "Date",
+          field: "invoiceDate",
+          width: 110,
+
+          formatter: (cell) => formatTimestamp(cell.getValue(), "DD-MM-YYYY"),
+        },
+        { title: "Type", field: "invoiceType", width: 150 },
+        {
+          title: "Name",
+          field: "name",
+          width: 200,
+
+          formatter: (cell) => StringUtils.toTitleCase(cell.getValue() || "-"),
+        },
+        { title: "Phone", field: "phone", width: 150 },
+        {
+          title: "Place",
+          field: "place",
+          width: 150,
+
+          formatter: (cell) => StringUtils.toTitleCase(cell.getValue() || "-"),
+        },
+        // {
+        //   title: "Remark",
+        //   field: "remark",
+        //   width: 150,
+
+        //   formatter: (cell) => StringUtils.toTitleCase(cell.getValue() || "-"),
+        // },
+        // {
+        //   title: "Status",
+        //   field: "invoiceStatus",
+        //   width: 100,
+
+        //   formatter: (cell) => {
+        //     const status = cell.getValue() || "unknown";
+        //     const color = status === "active" ? "bg-success" : "bg-secondary";
+        //     return `<span class="badge ${color}">${StringUtils.capitalize(
+        //       status
+        //     )}</span>`;
+        //   },
+        // },
+        {
+          title: "Actions",
+          width: 200,
+
+          formatter: (cell) => {
+            const id = cell.getRow().getData().invoiceId;
+            return `
+            <button class="btn btn-sm btn-action whatsapp-btn me-1" data-id="${id}">
+              <i class="bi bi-whatsapp"></i>
+            </button>
+            <button class="btn btn-sm btn-action view-btn me-1" data-id="${id}">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn btn-sm btn-action update-btn me-1" data-id="${id}">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn btn-sm btn-action delete-btn" data-id="${id}">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          `;
+          },
+          cellClick: (e, cell) => {
+            const btn = e.target.closest("button");
+            if (!btn) return;
+            const rowData = cell.getRow().getData();
+
+            if (btn.classList.contains("whatsapp-btn"))
+              whatsappShareInvoice(rowData);
+            else if (btn.classList.contains("view-btn")) viewInvoice(rowData);
+            else if (btn.classList.contains("update-btn"))
+              updateInvoice(rowData);
+            else if (btn.classList.contains("delete-btn"))
+              openDeleteModal(rowData);
+          },
+        },
+      ],
     });
   }
 
-  // ==== Pagination ====
-  function renderPagination(totalItems) {
-    const pagination = document.getElementById("pagination");
-    if (!pagination) return;
+  function whatsappShareInvoice(inv) {
+    if (!inv) return alert("No invoice data found!");
 
-    pagination.innerHTML = "";
-    const totalPages = Math.ceil(totalItems / invoicePageSize);
-    if (totalPages <= 1) return;
+    // --- Format invoice details ---
+    const invoiceDate = inv.invoiceDate
+      ? new Date(inv.invoiceDate).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "-";
 
-    const maxVisiblePages = 5; // Number of page buttons to show besides first/last
-    let startPage = Math.max(
-      1,
-      invoiceCurrentPage - Math.floor(maxVisiblePages / 2)
-    );
-    let endPage = startPage + maxVisiblePages - 1;
+    const phone = inv.phone ? inv.phone.toString() : "";
+    const name = inv.name || "Customer";
+    const place = inv.place || "";
+    const frame = inv.frame || "-";
+    const lence = inv.lence || "-";
+    const amount = inv.amount || "0.00";
+    const type = inv.invoiceType || "-";
+    const invoiceNo = inv.invoiceNumber || "-";
+    const age = inv.age ? `${inv.age} yrs` : "";
+    const remark = inv.remark ? `\nRemark: ${inv.remark}` : "";
+    const paymentMode = inv.paymentMode ? `\nPayment: ${inv.paymentMode}` : "";
 
-    if (endPage > totalPages) {
-      endPage = totalPages;
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
+    // Power details (optional)
+    const p = inv.power || {};
+    const powerText = `
+*Eye Power*
+Right:  Sph ${p.rSph || "-"} | Cyl ${p.rCyl || "-"} | Axis ${p.rAxis || "-"}
+Left:   Sph ${p.lSph || "-"} | Cyl ${p.lCyl || "-"} | Axis ${p.lAxis || "-"}
+`.trim();
 
-    // --- First button ---
-    const firstLi = document.createElement("li");
-    firstLi.className = `page-item ${
-      invoiceCurrentPage === 1 ? "disabled" : ""
-    }`;
-    firstLi.innerHTML = `<a class="page-link" href="#">First</a>`;
-    firstLi.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (invoiceCurrentPage === 1) return;
-      invoiceCurrentPage = 1;
-      fetchInvoices();
-    });
-    pagination.appendChild(firstLi);
+    // --- WhatsApp message template ---
+    const message = `
+*INVOICE DETAILS*
+────────────────────
+*Invoice No:* ${invoiceNo}}
+*Date:* ${invoiceDate}
 
-    // --- Pages with ellipsis ---
-    if (startPage > 1) {
-      const li = document.createElement("li");
-      li.className = "page-item disabled";
-      li.innerHTML = `<span class="page-link">...</span>`;
-      pagination.appendChild(li);
-    }
+*Name:* ${name}
+*Place:* ${place}
+*Phone:* ${phone}
 
-    for (let i = startPage; i <= endPage; i++) {
-      const li = document.createElement("li");
-      li.className = `page-item ${i === invoiceCurrentPage ? "active" : ""}`;
-      li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
-      li.addEventListener("click", (e) => {
-        e.preventDefault();
-        if (invoiceCurrentPage === i) return;
-        invoiceCurrentPage = i;
-        fetchInvoices();
-      });
-      pagination.appendChild(li);
-    }
+*Frame:* ${frame}
+*Lens:* ${lence}
 
-    if (endPage < totalPages) {
-      const li = document.createElement("li");
-      li.className = "page-item disabled";
-      li.innerHTML = `<span class="page-link">...</span>`;
-      pagination.appendChild(li);
-    }
+${powerText}
 
-    // --- Last button ---
-    const lastLi = document.createElement("li");
-    lastLi.className = `page-item ${
-      invoiceCurrentPage === totalPages ? "disabled" : ""
-    }`;
-    lastLi.innerHTML = `<a class="page-link" href="#">Last</a>`;
-    lastLi.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (invoiceCurrentPage === totalPages) return;
-      invoiceCurrentPage = totalPages;
-      fetchInvoices();
-    });
-    pagination.appendChild(lastLi);
+*Amount:* ₹${amount}${paymentMode}${remark}
+
+E-Invoice: ${HOST_URL}${HOST_ROUTE_PATH}/shared/invoices?id=${inv.invoiceId}
+
+Thank you!
+`.trim();
+
+    // --- Create WhatsApp share URL ---
+    const whatsappURL = `https://wa.me/+91${phone}?text=${encodeURIComponent(
+      message
+    )}`;
+
+    // --- Open WhatsApp ---
+    window.open(whatsappURL, "_blank");
   }
 
   // ==== View Invoice ====
@@ -556,7 +600,7 @@ document.addEventListener("DOMContentLoaded", function () {
     setText("viewInvoiceAge", inv.age);
     setText("viewInvoicePlace", StringUtils.toTitleCase(inv.place));
     setText("viewInvoiceAmount", inv.amount);
-    setText("viewInvoiceOffer", inv.offer);
+    setText("viewInvoiceOffer", inv.offer ?? "-");
     setText("viewInvoiceClaim", inv.claim);
     setText("viewInvoiceRemark", inv.remark);
     setText("viewInvoiceType", inv.invoiceType);
@@ -740,8 +784,16 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!dob || dob === "0000-00-00" || dob === "null" || dob === null) {
       dob = "";
     }
-    // Safely set the date
+    // Safely set the DOB field
     $("#createInvoiceDob").val(dob);
+    if (dob) {
+      // If DOB has a valid value, calculate age
+      getAge(null, "createInvoiceDob", "createInvoiceAge");
+    } else {
+      // If no DOB, clear both fields
+      $("#createInvoiceDob").val("");
+      $("#createInvoiceAge").val("");
+    }
   });
 });
 

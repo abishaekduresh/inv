@@ -72,6 +72,7 @@ class AuthModel
             $jwtHelper = new JwtHelper($_ENV['JWT_SECRET'], $_ENV['JWT_ALGO'], $_ENV['JWT_EXPIRY']);
             $token = $jwtHelper->generateToken([
                 "sub"  => $user['user_id'],
+                "busid" => $user['business_id'] ?? null
             ]);
 
             // Successful login

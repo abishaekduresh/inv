@@ -36,7 +36,7 @@ class JwtHelper
         $payload = array_merge($claims, [
             'iat' => $unixTimestamp,
             'nbf' => $unixTimestamp,
-            'jti' => $this->uniqueIdHelper->generate(12, ''),
+            'jti' => $this->uniqueIdHelper->generate(8, ''),
             'exp' => $unixTimestamp + $this->ttl,
         ]);
         return JWT::encode($payload, $this->secret, $this->algo);
@@ -45,12 +45,62 @@ class JwtHelper
     /**
      * Verify and decode token
      */
-    public function verifyToken(string $jwt): ?object
+    public function verifyToken(string $jwt): array
     {
         try {
-            return JWT::decode($jwt, new Key($this->secret, $this->algo));
-        } catch (Exception $e) {
-            return null; // invalid/expired
+            $decoded = JWT::decode($jwt, new Key($this->secret, $this->algo));
+
+            return [
+                'status'  => true,
+                'message' => 'Token is valid.',
+                'data'    => [
+                    'jwt'   => $decoded ?? null,
+                    'userId'     => $decoded->sub    ?? null,
+                    'businessId' => $decoded->busid  ?? null,
+                ],
+                'httpCode' => 200,
+            ];
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            return [
+                'status'  => false,
+                'message' => 'Token has expired.',
+                'help'    => 'Please refresh your session or log in again.',
+                'error'   => $e->getMessage(),
+                'httpCode' => 401,
+            ];
+        } catch (\Firebase\JWT\SignatureInvalidException $e) {
+            return [
+                'status'  => false,
+                'message' => 'Invalid token signature.',
+                'help'    => 'Your token signature does not match the expected key. Ensure your key is correct.',
+                'error'   => $e->getMessage(),
+                'httpCode' => 401,
+            ];
+        } catch (\Firebase\JWT\BeforeValidException $e) {
+            return [
+                'status'  => false,
+                'message' => 'Token not valid yet.',
+                'help'    => 'This token is not active yet (check the nbf or iat fields).',
+                'error'   => $e->getMessage(),
+                'httpCode' => 401,
+            ];
+        } catch (\UnexpectedValueException $e) {
+            return [
+                'status'  => false,
+                'message' => 'Malformed token.',
+                'help'    => 'The token structure is invalid. It might be corrupted or incomplete.',
+                'error'   => $e->getMessage(),
+                'httpCode' => 400,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'status'  => false,
+                'message' => 'Token verification failed.',
+                'help'    => 'Unexpected error while decoding token. Ensure it was generated with the same secret and algorithm.',
+                'error'   => $e->getMessage(),
+                'httpCode' => 500,
+            ];
         }
     }
+
 }

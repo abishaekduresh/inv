@@ -1,9 +1,17 @@
+<?php
+require_once 'common.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Optical Shop Management - Login</title>
+    <title><?= AppConfig::APP_NAME ?? null ?> - Login</title>
+    <link rel="icon" href="./assets/img/favicon.png" type="image/png">
+    <!-- Apple/Android devices -->
+    <link rel="apple-touch-icon" href="./assets/img/favicon.png">
+    <link rel="shortcut icon" href="./assets/img/favicon.png" type="image/png">
+
     <link href="assets/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="assets/lib/sweetalert2/sweetalert2.min.css" />
     <link
@@ -36,7 +44,6 @@
                         class="form-control"
                         id="inputPhone"
                         placeholder="Enter phone number"
-                        value="8883366077"
                       />
                     </div>
                     <div class="mb-4">
@@ -48,7 +55,6 @@
                         class="form-control"
                         id="inputPassword"
                         placeholder="Enter password"
-                        value="8883366077$"
                       />
                     </div>
                     <div
@@ -78,7 +84,7 @@
                     <p class="mb-3">
                       "This software has completely simplified our invoice
                       management. Quick, reliable, and perfect for optical stores."
-                      <br/> Version: 1.0.0
+                      <br/> Version: <?= AppConfig::API_VERSION ?? null ?>
                     </p>
                     <!--<p>- Optica Admin</p>-->
                   </div>

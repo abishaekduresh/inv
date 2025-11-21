@@ -1,4 +1,9 @@
 <?php
+class AppConfig {
+    public const APP_NAME = 'Optical Shop Invoice Management';
+    public const API_VERSION = 'v1.1';
+}
+
 function getBaseUrl($includeRequestUri = false) {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' 
                  || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";

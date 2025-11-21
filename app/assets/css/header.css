@@ -27,7 +27,7 @@ body {
 
 /* ===== Sidebar ===== */
 .sidebar {
-  width: 250px;
+  width: 180px;
   background: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
@@ -107,7 +107,10 @@ body {
   flex: 1;
   overflow-y: auto;
   background: var(--content-bg);
-  padding: 1.5rem;
+  padding-top: 1.5rem;
+  padding: 1rem;
+  padding-bottom: 3rem; /* ✅ Extra bottom padding */
+  /* margin-bottom: 2rem; */
 }
 
 /* ===== Navbar ===== */

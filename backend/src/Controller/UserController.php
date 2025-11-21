@@ -219,8 +219,8 @@ class UserController
 
             // --- Required fields and validation ---
             $requiredFields = [
-                'name'  => 'string',
-                'phone' => 'integer',
+                // 'name'  => 'string',
+                // 'phone' => 'integer',
             ];
 
             foreach ($requiredFields as $field => $type) {
@@ -265,7 +265,8 @@ class UserController
                 'phone' => isset($payload['phone']) ? (int) $payload['phone'] : null,
                 'role' => isset($payload['role']) ? (string) strtolower($payload['role']) : null,
                 'status' => isset($payload['status']) ? (string) strtolower($payload['status']) : null,
-                'password' => isset($payload['password']) ? (string) $payload['password'] : null
+                'password' => isset($payload['password']) ? (string) $payload['password'] : null,
+                'reqUserId' => $request->getAttribute('jwt')->sub ?? null
             ];
 
             $result = $this->userModel->updateUser($userId, $payloadFormatted);
@@ -296,8 +297,13 @@ class UserController
                 ]);
             }
 
+            $payloadFormatted = [
+                'reqUserId' => $request->getAttribute('jwt')->sub ?? null,
+                'userId'    => $userId
+            ];
+
             // --- Call model ---
-            $result = $this->userModel->deleteUser($userId);
+            $result = $this->userModel->deleteUser($payloadFormatted);
 
             return $this->jsonResponse($response, $result);
 
