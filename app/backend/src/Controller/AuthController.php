@@ -124,11 +124,6 @@ class AuthController
             'message' => 'Logged out successfully',
         ];
 
-        // $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
-        // return $response->withHeader('Content-Type', 'application/json')
-        //                 ->withStatus(200);
-
         return $this->apiHelper->jsonResponse($response, $payload);
     }
 }

@@ -14,11 +14,6 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-
--- Dumping database structure for eyelight.dureshtech.com
-CREATE DATABASE IF NOT EXISTS `eyelight.dureshtech.com` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-USE `eyelight.dureshtech.com`;
-
 -- Dumping structure for table eyelight.dureshtech.com.activity_logs
 CREATE TABLE IF NOT EXISTS `activity_logs` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -32,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `activity_logs` (
   `response_data` json DEFAULT NULL,
   `created_at` bigint DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=630 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -90,7 +85,7 @@ CREATE TABLE IF NOT EXISTS `invoices` (
   `created_at` bigint NOT NULL DEFAULT (0),
   PRIMARY KEY (`id`),
   UNIQUE KEY `invoice_id` (`invoice_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=2057 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=2059 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Data exporting was unselected.
 

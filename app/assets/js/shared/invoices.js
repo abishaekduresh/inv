@@ -1,5 +1,27 @@
-const params = new URLSearchParams(window.location.search);
-const invoiceId = params.get("id");
+function getInvoiceId() {
+  const params = new URLSearchParams(window.location.search);
+  const queryId = params.get("id");
+  if (queryId) return queryId;
+
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  return parts[parts.length - 1] || null;
+}
+
+const invoiceId = getInvoiceId();
+
+function checkInvoice() {
+  if (!invoiceId) {
+    Swal.fire({
+      icon: "info",
+      title: "Share Invoice",
+      text: "No invoice ID found in the URL!",
+    });
+    showToast("warning", "Missing invoice ID");
+    return; // Allowed inside function
+  }
+}
+
+checkInvoice(); // Run the function
 
 // 🔹 Share Invoice on WhatsApp
 function shareOnWhatsapp(invoiceId) {
@@ -11,10 +33,20 @@ function shareOnWhatsapp(invoiceId) {
 }
 
 // 🔹 Render Invoices Dynamically
-function renderInvoices(invoices) {
+function renderInvoices(invoices, businessInfo = null) {
   const container = document.getElementById("invoiceContainer");
   container.innerHTML = "";
-
+  const logoUrl = businessInfo["logoPath"]
+    ? `${window.location.origin}/app/backend/public${businessInfo["logoPath"]}`
+    : "../assets/img/no-img.png";
+  const businessName = businessInfo["name"] ?? null;
+  const businessPhone = businessInfo["phone"] ?? null;
+  const businessAddress = businessInfo["addr1"] ?? null;
+  const businessEmail = businessInfo["email"] ?? null;
+  const businessEmailOutput = `${
+    businessEmail ? `Email: ${businessEmail}` : ""
+  }`;
+  setFavicon(logoUrl);
   if (!invoices || invoices.length === 0) {
     Swal.fire({
       icon: "warning",
@@ -36,13 +68,13 @@ function renderInvoices(invoices) {
     div.innerHTML = `
       <div class="business-header">
         <div class="business-logo">
-          <img src="https://via.placeholder.com/150x60?text=LOGO" alt="Business Logo">
+          <img src="${logoUrl}" alt="Business Logo">
         </div>
         <div class="business-details">
-          <strong>Optical Eye Shop</strong><br>
-          123 Main Street, New York<br>
-          Phone: +1 9876543210<br>
-          Email: info@opticalshop.com
+          <strong>${businessName}</strong><br>
+          ${businessAddress}<br>
+          Phone: +91 ${businessPhone}<br>
+          ${businessEmailOutput}
         </div>
       </div>
 
@@ -82,7 +114,7 @@ function renderInvoices(invoices) {
             <table class="table table-sm power-table">
               <thead class="table-light">
                 <tr>
-                  <th>Eye</th><th>Sph</th><th>Cyl</th><th>Axis</th><th>Via</th><th>Add</th><th>Pupillary Distance</th>
+                  <th>Eye</th><th>Sph</th><th>Cyl</th><th>Axis</th><th>Via</th><th>Add</th>
                 </tr>
               </thead>
               <tbody>
@@ -93,7 +125,6 @@ function renderInvoices(invoices) {
                   <td>${inv.power.rAxis}</td>
                   <td>${inv.power.rVia}</td>
                   <td>${inv.power.rAdd}</td>
-                  <td>${inv.power.rPd}</td>
                 </tr>
                 <tr>
                   <td>Left</td>
@@ -102,7 +133,6 @@ function renderInvoices(invoices) {
                   <td>${inv.power.lAxis}</td>
                   <td>${inv.power.lVia}</td>
                   <td>${inv.power.lAdd}</td>
-                  <td>${inv.power.lPd}</td>
                 </tr>
               </tbody>
             </table>
@@ -121,7 +151,7 @@ function renderInvoices(invoices) {
             <div class="col-6 col-md-4"><strong>Amount:</strong> ₹${
               inv.amount ?? "-"
             }</div>
-            <div class="col-6 col-md-4"><strong>Offer:</strong> ${
+            <!--div class="col-6 col-md-4"><strong>Offer:</strong> ${
               inv.offer ?? "-"
             }</div>
             <div class="col-6 col-md-4"><strong>Claim:</strong> ${
@@ -132,21 +162,21 @@ function renderInvoices(invoices) {
             }</div>
             <div class="col-12"><strong>Remark:</strong> ${
               inv.remark ?? "-"
-            }</div>
+            }</div-->
           </div>
         </div>
       </div>
 
       <div class="card-footer d-flex flex-wrap gap-2 justify-content-center">
-        <a href="https://wa.me/+19876543210?text=Hello%20${
-          inv.name ?? "-"
-        }" target="_blank" class="btn btn-success d-flex align-items-center gap-1 flex-grow-1 flex-md-grow-0">
+        <!--a href="https://wa.me/+91${businessPhone}?text=Hello%20${
+      inv.name ?? "-"
+    }" target="_blank" class="btn btn-success d-flex align-items-center gap-1 flex-grow-1 flex-md-grow-0">
           <i class="fa-brands fa-whatsapp"></i> WhatsApp
-        </a>
-        <a href="tel:+19876543210" class="btn btn-primary d-flex align-items-center gap-1 flex-grow-1 flex-md-grow-0">
+        </a-->
+        <a href="tel:+91${businessPhone}" class="btn btn-primary d-flex align-items-center gap-1 flex-grow-1 flex-md-grow-0">
           <i class="bi bi-telephone-fill"></i> Call
         </a>
-        <a href="/viewInvoice.php?id=${
+        <!--a href="/viewInvoice.php?id=${
           inv.invoiceId ?? "-"
         }" class="btn btn-info d-flex align-items-center gap-1 flex-grow-1 flex-md-grow-0 text-white">
           <i class="bi bi-eye"></i> View
@@ -155,7 +185,7 @@ function renderInvoices(invoices) {
           inv.invoiceNumber ?? "-"
         }" class="btn btn-warning d-flex align-items-center gap-1 flex-grow-1 flex-md-grow-0 text-dark">
           <i class="bi bi-envelope-fill"></i> Email
-        </a>
+        </a-->
       </div>
     `;
 
@@ -166,13 +196,14 @@ function renderInvoices(invoices) {
 // 🔹 API Request
 apiRequest(
   "GET",
-  `/api/shared/invoices`,
-  params ?? {},
+  `/api/shared/invoices/${invoiceId}`,
+  {},
   false,
   function onSuccess(response) {
     const invoices = response.data?.invoices || [];
+    const businessInfo = response.data?.businessInfo || null;
     document.title = `#${invoices[0].invoiceNumber ?? null} | Shared Invoice`;
-    renderInvoices(invoices);
+    renderInvoices(invoices, businessInfo);
   },
   function onError(xhr) {
     let message = "Something went wrong.";

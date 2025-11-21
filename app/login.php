@@ -18,6 +18,7 @@ require_once 'common.php';
       href="assets/lib/tabulator/dist/css/tabulator.min.css"
       rel="stylesheet"
     />
+    <link href="assets/css/common.css" rel="stylesheet" />
     <link href="assets/css/login.css" rel="stylesheet" />
   </head>
   <body

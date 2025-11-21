@@ -1,7 +1,7 @@
 <?php
 class AppConfig {
     public const APP_NAME = 'Optical Shop Invoice Management';
-    public const API_VERSION = 'v1.1';
+    public const API_VERSION = 'v2.0';
 }
 
 function getBaseUrl($includeRequestUri = false) {

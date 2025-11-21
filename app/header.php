@@ -5,23 +5,23 @@ $base_path = __DIR__ . '/'; // filesystem base path
 
 // === Common Includes ===
 require_once $base_path . 'common.php';
+$APP_NAME = AppConfig::APP_NAME ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><?= AppConfig::APP_NAME ?? null ?> - Dashboard</title>
-  <link rel="icon" href="./assets/img/favicon.png" type="image/png">
+  <title><?= $APP_NAME ?? null ?> - Dashboard</title>
+  <link rel="icon" href="<?= $base_url ?>assets/img/favicon.png" type="image/png">
   <!-- Apple/Android devices -->
-  <link rel="apple-touch-icon" href="./assets/img/favicon.png">
-  <link rel="shortcut icon" href="./assets/img/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="<?= $base_url ?>assets/img/favicon.png">
+  <link rel="shortcut icon" href="<?= $base_url ?>assets/img/favicon.png" type="image/png">
 
 
   <!-- CSS Libraries -->
   <link href="<?= $base_url ?>assets/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
   <link href="<?= $base_url ?>assets/lib/sweetalert2/sweetalert2.min.css" rel="stylesheet" />
-  <!-- <link href="<?= $base_url ?>assets/lib/tabulator/dist/css/tabulator.min.css" rel="stylesheet" /> -->
 
   <!-- Select2 -->
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -31,7 +31,7 @@ require_once $base_path . 'common.php';
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet" />
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.0/dist/css/tabulator_bootstrap5.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.0/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.0/dist/js/tabulator.min.js"></script>
 
   <!-- App CSS -->
@@ -43,9 +43,9 @@ require_once $base_path . 'common.php';
   <script src="<?= $base_url ?>assets/lib/jquery/jquery.min.js"></script>
   <script src="<?= $base_url ?>assets/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="<?= $base_url ?>assets/lib/sweetalert2/sweetalert2.all.min.js"></script>
-  <!-- <script src="<?= $base_url ?>assets/lib/tabulator/dist/js/tabulator.min.js"></script> -->
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="<?= $base_url ?>assets/js/common.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </head>
 
@@ -62,9 +62,9 @@ require_once $base_path . 'common.php';
 
       <!-- Brand with logo -->
       <a class="navbar-brand text-white d-flex align-items-center" href="<?= $base_url ?>#">
-        <img src="./assets/img/favicon.png" alt="Logo" 
+        <img src="<?= $base_url ?>assets/img/favicon.png" alt="Logo" 
             width="28" height="28" class="me-2">
-        <span><?= AppConfig::APP_NAME ?? null ?></span>
+        <span><?= $APP_NAME ?? null ?></span>
       </a>
 
       <!-- Logout button -->
@@ -91,6 +91,7 @@ require_once $base_path . 'common.php';
         </div>
         <a href="<?= $base_url ?>users" class="nav-link"><i class="fa-solid fa-user-group"></i> Users</a>
         <a href="<?= $base_url ?>settings" class="nav-link"><i class="bi bi-gear"></i> Settings</a>
+        <a href="<?= $base_url ?>activity" class="nav-link"><i class="fa fa-list-check"></i> Activity</a>
       </nav>
     </div>
 
@@ -127,6 +128,9 @@ require_once $base_path . 'common.php';
             </div>
             <a href="<?= $base_url ?>settings" class="nav-link text-white py-2 px-2 d-flex align-items-center gap-2">
                 <i class="bi bi-gear"></i> <span>Settings</span>
+            </a>
+            <a href="<?= $base_url ?>activity" class="nav-link text-white py-2 px-2 d-flex align-items-center gap-2">
+                <i class="fa fa-list-check"></i> <span>Activity</span>
             </a>
             </nav>
         </div>

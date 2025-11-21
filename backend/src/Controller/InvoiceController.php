@@ -412,7 +412,7 @@ class InvoiceController
     public function getSharedInvoice(Request $request, Response $response, array $args): Response 
     {
         $queryParams = $request->getQueryParams();
-        $invoiceId = $queryParams['id'] ?? $invoiceId;
+        $invoiceId = $queryParams['id'] ?? $args['invoiceId'] ?? null;
         if (!$invoiceId) {
             return $this->jsonResponse($response, [
                 'status'   => false,

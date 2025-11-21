@@ -237,4 +237,52 @@ class BusinessController
             ]);
         }
     }
+
+    public function fetchDashboardStats(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $payload = [];
+            $payload = $queryParams = $request->getQueryParams();
+
+            // Call backend API
+            $apiUrl = rtrim($this->backendApiUrl, '/') . '/api/business/stats';
+            $result = $this->apiHelper->request($apiUrl, 'GET', [], [], $payload);
+
+            // Forward API response exactly as-is
+            return $this->apiHelper->jsonResponse($response, $result);
+
+        } catch (\Throwable $e) {
+            return $this->apiHelper->jsonResponse($response, [
+                'status'    => false,
+                'httpCode'  => 500,
+                'body'      => null,
+                'headers'   => [],
+                'error'     => 'Server Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function fetchActivityLogs(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $payload = [];
+            $payload = $queryParams = $request->getQueryParams();
+
+            // Call backend API
+            $apiUrl = rtrim($this->backendApiUrl, '/') . '/api/business/activity/logs';
+            $result = $this->apiHelper->request($apiUrl, 'GET', [], [], $payload);
+
+            // Forward API response exactly as-is
+            return $this->apiHelper->jsonResponse($response, $result);
+
+        } catch (\Throwable $e) {
+            return $this->apiHelper->jsonResponse($response, [
+                'status'    => false,
+                'httpCode'  => 500,
+                'body'      => null,
+                'headers'   => [],
+                'error'     => 'Server Error: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

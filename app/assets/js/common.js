@@ -1,17 +1,64 @@
 /**
- * api.js
- * Reusable jQuery API helper for GET, POST, PUT, PATCH, DELETE requests
- * Supports JSON, FormData, and optional JWT from cookie
+ * common.js
+ * Universal JS helpers for API calls, UI utilities, and general client-side logic.
+ * Supports: SweetAlert, jQuery AJAX, Fullscreen mode, right-click prevention, etc.
  */
 
-const protocol = window.location.protocol;
-const hostname = window.location.hostname;
-const port = window.location.port;
+// -------------------------
+// 🌍 Global Constants
+// -------------------------
 const HOST_URL = window.location.origin;
-
 const HOST_ROUTE_PATH = "/app"; // Adjust if needed
-const BASE_API_URL = HOST_URL + HOST_ROUTE_PATH + "/backend/public";
+const BASE_API_URL = `${HOST_URL}${HOST_ROUTE_PATH}/backend/public`;
 
+// -------------------------
+// ⚠️ Right-Click & DevTools Protection
+// -------------------------
+document.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  // showToast("warning", "Right Click Disabled");
+});
+
+document.addEventListener("keydown", (e) => {
+  // Block F12, Ctrl+Shift+I/J/C, Ctrl+U
+  if (
+    e.key === "F12" ||
+    (e.ctrlKey &&
+      e.shiftKey &&
+      ["I", "J", "C"].includes(e.key.toUpperCase())) ||
+    (e.ctrlKey && e.key.toUpperCase() === "U")
+  ) {
+    e.preventDefault();
+    // showToast("warning", "Developer access disabled.");
+  }
+});
+
+function setFavicon(url) {
+  // Remove any existing favicons
+  document
+    .querySelectorAll(
+      'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'
+    )
+    .forEach((el) => el.remove());
+
+  // Create new favicon links
+  const favicon = document.createElement("link");
+  favicon.rel = "icon";
+  favicon.type = "image/png";
+  favicon.href = url;
+  document.head.appendChild(favicon);
+
+  const appleIcon = document.createElement("link");
+  appleIcon.rel = "apple-touch-icon";
+  appleIcon.href = url;
+  document.head.appendChild(appleIcon);
+
+  const shortcut = document.createElement("link");
+  shortcut.rel = "shortcut icon";
+  shortcut.type = "image/png";
+  shortcut.href = url;
+  document.head.appendChild(shortcut);
+}
 /**
  * Get cookie value by name
  * @param {string} name

@@ -62,9 +62,10 @@ return function (App $app) {
      * Public Routes (/api/*)
      * ------------------------------------------------------------
      */
-    $app->group('/api', function ($group) use ($authController, $invoiceController) {
+    $app->group('/api', function ($group) use ($authController, $invoiceController, $businessController) {
         $group->post('/auth/users/login', [$authController, 'loginUser'])->setName('Users logged in');
-        $group->get('/shared/invoices', [$invoiceController, 'getSharedInvoice']);
+        $group->get('/shared/invoices/{invoiceId}', [$invoiceController, 'getSharedInvoice']);
+        // $group->get('/business/stats', [$businessController, 'fetchDashboardStats']);
     })->add(new ActivityLoggerMiddleware());
 
     /**
@@ -112,6 +113,10 @@ return function (App $app) {
         $group->post('/business', [$businessController, 'createBusiness']);
         $group->put('/business/{businessId}', [$businessController, 'updateBusiness']);
         $group->delete('/business/{businessId}', [$businessController, 'deleteBusiness']);
+        // Dashboard
+        $group->get('/business/stats', [$businessController, 'fetchDashboardStats']);
+        // Activity Log
+        $group->get('/business/activity/logs', [$businessController, 'fetchActivityLogs']);
     })
     // Correct order: First JWT (auth), then Logger (logs request)
     ->add(new ActivityLoggerMiddleware())

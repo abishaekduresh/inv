@@ -10,9 +10,15 @@ RewriteEngine On
     Header set Expires "0"
 </IfModule>
 
-# ----------------------------------------
-# Rewrite all non-file/non-directory requests to index.php
-# ----------------------------------------
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
+# If the requested file exists, serve it directly
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# If the requested directory exists, serve it
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Rewrite clean URLs like /login -> /login.php
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+)$ $1.php [L]
+

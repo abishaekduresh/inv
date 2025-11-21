@@ -337,6 +337,49 @@ class BusinessController
             ]);
         }
     }
+    
+    public function fetchDashboardStats(Request $request, Response $response, array $args): Response
+    {
+        $queryParams = $request->getQueryParams();
+
+        $data = [
+            'searchQuery' => $queryParams['q'] ?? null,
+            'businessId'  => isset($queryParams['id']) ? strtoupper($queryParams['id']) : null,
+            'phone'       => isset($queryParams['ph']) ? (int) $queryParams['ph'] : null,
+            'status'      => $queryParams['sts'] ?? 'active',
+            'order'       => strtoupper($queryParams['ord'] ?? 'DESC'),
+            'page'        => (int)($queryParams['page'] ?? 1),
+            'limit'       => (int)($queryParams['limit'] ?? 25),
+        ];
+
+        if (!empty($data['phone']) && !preg_match('/^\d{10}$/', (string)$data['phone'])) {
+            return $this->jsonResponse($response, [
+                'status' => false,
+                'message' => 'Invalid phone number. Must be 10 digits.',
+                'httpCode' => 400,
+            ]);
+        }
+
+        $result = $this->businessModel->fetchDashboardStats($data);
+        return $this->jsonResponse($response, $result);
+    }
+    
+    public function fetchActivityLogs(Request $request, Response $response, array $args): Response
+    {
+        $queryParams = $request->getQueryParams();
+
+        $data = [
+            'searchQuery' => $queryParams['q'] ?? null,
+            'businessId'  => isset($queryParams['id']) ? strtoupper($queryParams['id']) : null,
+            'status'      => $queryParams['sts'] ?? 'active',
+            'order'       => strtoupper($queryParams['ord'] ?? 'DESC'),
+            'page'        => (int)($queryParams['page'] ?? 1),
+            'limit'       => (int)($queryParams['limit'] ?? 25),
+        ];
+
+        $result = $this->businessModel->fetchActivityLogs($data);
+        return $this->jsonResponse($response, $result);
+    }
 
     private function jsonResponse(Response $response, array $result): Response
     {

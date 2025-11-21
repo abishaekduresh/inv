@@ -549,6 +549,277 @@ class BusinessModel
         }
     }
 
+    public function fetchDashboardStats(array $data = []): array
+    {
+        $conn = $this->pdo->getConnection();
+
+        try {
+            $businessId = $data['businessId'] ?? null;
+            $status     = $data['status'] ?? 'active';
+            $page       = (int)($data['page'] ?? 1);
+            $limit      = (int)($data['limit'] ?? 6);
+            $offset     = ($page - 1) * $limit;
+
+            $whereInvoices = " WHERE invoice_status = :status ";
+            $whereBusiness = " WHERE business_status = :status ";
+            $whereLogs     = " WHERE 1=1 ";
+
+            $paramsInvoices = [':status' => trim($status)];
+            $paramsBusiness = [':status' => trim($status)];
+            $paramsLogs     = [];
+
+            if (!empty($businessId)) {
+                $whereInvoices .= " AND business_id = :businessId ";
+                $whereBusiness .= " AND business_id = :businessId ";
+                $whereLogs     .= " AND business_id = :businessId ";
+
+                $paramsInvoices[':businessId'] = $businessId;
+                $paramsBusiness[':businessId'] = $businessId;
+                $paramsLogs[':businessId']     = $businessId;
+            }
+
+            // ======================
+            // DASHBOARD STATS
+            // ======================
+            $query = "
+                SELECT 
+                    COUNT(*) AS total_invoices,
+                    SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = CURDATE() THEN 1 ELSE 0 END) AS today_invoices,
+                    SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) THEN 1 ELSE 0 END) AS yesterday_invoices,
+                    IFNULL(SUM(amount), 0) AS total_sales,
+                    IFNULL(SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = CURDATE() THEN amount ELSE 0 END), 0) AS today_sales,
+                    IFNULL(SUM(CASE WHEN DATE(FROM_UNIXTIME(created_at)) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) THEN amount ELSE 0 END), 0) AS yesterday_sales
+                FROM invoices
+                $whereInvoices
+            ";
+            $stmt = $conn->prepare($query);
+            foreach ($paramsInvoices as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $invoiceStats = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            // ======================
+            // TOTAL BUSINESS
+            // ======================
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM business $whereBusiness");
+            foreach ($paramsBusiness as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $totalBusiness = (int)$stmt->fetchColumn();
+
+            // ======================
+            // TOTAL LOGS
+            // ======================
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM activity_logs $whereLogs");
+            foreach ($paramsLogs as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $totalLogs = (int)$stmt->fetchColumn();
+
+            // ======================
+            // RECENT INVOICES (Paginated)
+            // ======================
+            // Count total invoices (for pagination)
+            $countQuery = "SELECT COUNT(*) FROM invoices $whereInvoices";
+            $stmt = $conn->prepare($countQuery);
+            foreach ($paramsInvoices as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $totalInvoicesCount = (int)$stmt->fetchColumn();
+            $totalPages = max(1, ceil($totalInvoicesCount / $limit));
+
+            // Fetch limited recent invoices
+            $stmt = $conn->prepare("
+                SELECT 
+                    invoice_id, 
+                    invoice_number, 
+                    name, 
+                    amount, 
+                    DATE(FROM_UNIXTIME(created_at)) AS invoice_date 
+                FROM invoices 
+                $whereInvoices
+                ORDER BY id DESC 
+                LIMIT :limit OFFSET :offset
+            ");
+            foreach ($paramsInvoices as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            $recentInvoices = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // ======================
+            // CHART DATA (LAST 7 DAYS)
+            // ======================
+            $chartQuery = "
+                SELECT 
+                    DATE(FROM_UNIXTIME(created_at)) AS date_label,
+                    COUNT(*) AS invoice_count,
+                    IFNULL(SUM(amount), 0) AS total_sales
+                FROM invoices
+                $whereInvoices
+                    AND DATE(FROM_UNIXTIME(created_at)) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                GROUP BY DATE(FROM_UNIXTIME(created_at))
+                ORDER BY DATE(FROM_UNIXTIME(created_at)) ASC
+            ";
+            $stmt = $conn->prepare($chartQuery);
+            foreach ($paramsInvoices as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $chartResults = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $labels = [];
+            $invoiceCounts = [];
+            $salesValues = [];
+
+            for ($i = 6; $i >= 0; $i--) {
+                $date = date('Y-m-d', strtotime("-$i days"));
+                $day  = date('D', strtotime($date));
+                $labels[] = $day;
+                $record = array_values(array_filter($chartResults, fn($r) => $r['date_label'] === $date))[0] ?? null;
+                $invoiceCounts[] = $record ? (int)$record['invoice_count'] : 0;
+                $salesValues[] = $record ? (float)$record['total_sales'] : 0.0;
+            }
+
+            // ======================
+            // Final Data
+            // ======================
+            $records = [[
+                'totalInvoices'     => (int)($invoiceStats['total_invoices'] ?? 0),
+                'todayInvoices'     => (int)($invoiceStats['today_invoices'] ?? 0),
+                'yesterdayInvoices' => (int)($invoiceStats['yesterday_invoices'] ?? 0),
+                'totalBusiness'     => $totalBusiness,
+                'totalSales'        => number_format((float)($invoiceStats['total_sales'] ?? 0), 2),
+                'todaySales'        => number_format((float)($invoiceStats['today_sales'] ?? 0), 2),
+                'yesterdaySales'    => number_format((float)($invoiceStats['yesterday_sales'] ?? 0), 2),
+                'totalLogs'         => $totalLogs,
+                'recentInvoices'    => $recentInvoicesDesc = array_slice($recentInvoices, 0, 6),
+                'last7Days'         => [
+                    'labels'   => $labels,
+                    'invoices' => $invoiceCounts,
+                    'sales'    => $salesValues,
+                ]
+            ]];
+
+            // ======================
+            // Return Standardized Response
+            // ======================
+            return [
+                'status'   => true,
+                'httpCode' => 200,
+                'message'  => 'Dashboard stats fetched successfully.',
+                'data'     => ['records' => $records],
+                'pagination' => [
+                    'currentPage'  => $page,
+                    'limit'        => $limit,
+                    'totalPages'   => $totalPages,
+                    'totalRecords' => $totalInvoicesCount
+                ]
+            ];
+
+        } catch (\Throwable $e) {
+            return [
+                'status'   => false,
+                'httpCode' => 500,
+                'message'  => 'Error: ' . $e->getMessage()
+            ];
+        } finally {
+            $this->pdo->disconnect();
+        }
+    }
+
+    public function fetchActivityLogs(array $data = []): array
+    {
+        $conn = $this->pdo->getConnection();
+
+        try {
+            $searchQuery = trim($data['searchQuery'] ?? '');
+            $businessId  = $data['businessId'] ?? null;
+            $order       = strtoupper($data['order'] ?? 'DESC');
+            $page        = (int)($data['page'] ?? 1);
+            $limit       = (int)($data['limit'] ?? 25);
+            $offset      = ($page - 1) * $limit;
+
+            // Base filters
+            $where = " WHERE 1=1 ";
+            $params = [];
+
+            if (!empty($businessId)) {
+                $where .= " AND business_id = :businessId ";
+                $params[':businessId'] = $businessId;
+            }
+
+            if (!empty($searchQuery)) {
+                $where .= " AND (action LIKE :searchQuery OR endpoint LIKE :searchQuery OR ip_address LIKE :searchQuery OR user_id LIKE :searchQuery)";
+                $params[':searchQuery'] = "%$searchQuery%";
+            }
+
+            // Count total records
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM activity_logs $where");
+            foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $totalRecords = (int)$stmt->fetchColumn();
+
+            // Pagination math
+            $totalPages = max(1, ceil($totalRecords / $limit));
+
+            // Fetch paginated results
+            $stmt = $conn->prepare("
+                SELECT 
+                    user_id,
+                    business_id,
+                    action,
+                    method,
+                    endpoint,
+                    ip_address,
+                    request_data,
+                    response_data,
+                    created_at,
+                    FROM_UNIXTIME(created_at) AS created_datetime
+                FROM activity_logs
+                $where
+                ORDER BY created_at $order
+                LIMIT :limit OFFSET :offset
+            ");
+            foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+
+            $logs = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $records = array_map(function ($log) {
+                return [
+                    'userId'        => $log['user_id'],
+                    'businessId'    => $log['business_id'],
+                    'action'        => $log['action'],
+                    // 'method'        => strtoupper($log['method']),
+                    // 'endpoint'      => $log['endpoint'],
+                    'ipAddress'     => $log['ip_address'],
+                    // 'requestData'   => json_decode($log['request_data'] ?? '[]', true),
+                    // 'responseData'  => json_decode($log['response_data'] ?? '[]', true),
+                    'createdAtText' => date('Y-m-d H:i:s', (int)$log['created_at']),
+                ];
+            }, $logs);
+
+            return [
+                'status'   => true,
+                'httpCode' => 200,
+                'message'  => 'Activity logs fetched successfully.',
+                'data'     => [ 'records' => $records ],
+                'pagination' => [
+                    'currentPage'  => $page,
+                    'limit'        => $limit,
+                    'totalPages'   => $totalPages,
+                    'totalRecords' => $totalRecords,
+                ]
+            ];
+
+        } catch (\Throwable $e) {
+            return [
+                'status'   => false,
+                'httpCode' => 500,
+                'message'  => 'Error: ' . $e->getMessage()
+            ];
+        } finally {
+            $this->pdo->disconnect();
+        }
+    }
+
     // --- Helper: return error consistently ---
     private function fail($conn, $message, $httpCode = 400)
     {

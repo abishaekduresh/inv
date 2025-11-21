@@ -7,6 +7,7 @@ use App\Helper\TimestampHelper;
 use App\Helper\PasswordHelper;
 use App\Helper\UniqueIdHelper;
 use App\Helper\DatabaseHelper;
+use App\Model\BusinessModel;
 
 class InvoiceModel
 {
@@ -14,6 +15,7 @@ class InvoiceModel
     private TimestampHelper $timestampHelper;
     private PasswordHelper $passwordHelper;
     private UniqueIdHelper $uniqueIdHelper;
+    private BusinessModel $businessModel;
 
     public function __construct()
     {
@@ -21,6 +23,7 @@ class InvoiceModel
         $this->timestampHelper = new TimestampHelper();
         $this->passwordHelper  = new PasswordHelper();
         $this->uniqueIdHelper  = new UniqueIdHelper();
+        $this->businessModel   = new BusinessModel();
     }
 
     public function getInvoice(array $data)
@@ -676,12 +679,15 @@ class InvoiceModel
                 ];
             }, $results);
 
+            $businessInfo = $this->businessModel->getBusiness($data);
+
             return [
                 'status' => true,
                 'httpCode' => 200,
                 'message' => 'Shared invoices fetched successfully',
                 'data' => [
-                    'invoices' => $invoices
+                    'invoices' => $invoices ?? null,
+                    'businessInfo' => $businessInfo['data']['records'][0] ?? null,
                 ]
             ];
 

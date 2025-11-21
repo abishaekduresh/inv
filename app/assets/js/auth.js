@@ -34,6 +34,7 @@ $(document).ready(function () {
       payload,
       false,
       function (response) {
+        console.log(response);
         const msg =
           response.message ||
           (response.body && response.body.message) ||
@@ -42,7 +43,7 @@ $(document).ready(function () {
         if (response.status) {
           // Proceed to fetch business info
           const params = {
-            id: "B3E531BB14BC",
+            id: response.data.businessId,
           };
 
           apiRequest(
@@ -51,7 +52,6 @@ $(document).ready(function () {
             params,
             false,
             function (businessResponse) {
-              console.log(businessResponse);
               const businessMsg =
                 msg ||
                 businessResponse.message ||

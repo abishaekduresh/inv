@@ -190,10 +190,11 @@ class InvoiceController
     {
         try {
             $payload = [];
-            $payload = $queryParams = $request->getQueryParams();
+            $queryParams = $request->getQueryParams();
+            $invoiceId = $queryParams['id'] ?? $args['invoiceId'] ?? null;
 
             // Call backend API
-            $apiUrl = rtrim($this->backendApiUrl, '/') . '/api/shared/invoices';
+            $apiUrl = rtrim($this->backendApiUrl, '/') . '/api/shared/invoices/' . $invoiceId;
             $result = $this->apiHelper->request($apiUrl, 'GET', [], [], $payload);
 
             // Forward API response exactly as-is

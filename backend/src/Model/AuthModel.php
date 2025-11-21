@@ -81,6 +81,7 @@ class AuthModel
                 'message'  => 'Login successful',
                 'httpCode' => 200,
                 'data'     => [
+                    'businessId' => $user['business_id'],
                     'userId' => $user['user_id'],
                     'name'   => $user['name'],
                 ],

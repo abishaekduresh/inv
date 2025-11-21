@@ -23,6 +23,13 @@ This application offers a clean UI, token-based authentication (JWT), and automa
 - 🕒 **Timestamp & Database Helpers**
   - Consistent date-time handling across the application
   - Structured database helper for PDO connection
+  - Auto-conversion helpers to readable formats
+- **✨ Frontend Dashboard**
+  - Line and bar charts for last 7 days performance
+  - Cached dashboard data (session/localStorage)
+  - Manual refresh option for live updates
+  - Visualize invoice count and sales trends with Chart.js
+  - Animated and color-coded graphs
 
 ---
 
@@ -148,8 +155,8 @@ where fresh data and correct routing are critical.
 
 ## 🧾 Project Information
 
-- **Name:** Eye Light Opticals - Invoice Management Web Application
-- **Version:** 1.1.0
+- **Name:** Optical Shop Invoice Management Web Application
+- **Version:** 2.0
 - **Author:** Abishaek Duresh B
 - **Language:** HTML, JavaScript, CSS, PHP
 - **Library:** Bootstrap 5, Sweetalert2, Tabular JS, Font Awsome
@@ -157,4 +164,10 @@ where fresh data and correct routing are critical.
 ## 📜 Version History
 
 See detailed version notes:
+
+- [v2.0](documents/v2.0.md)
 - [v1.1](documents/v1.1.md)
+
+---
+
+> ⚡ This project is built for scalability, security, and simplicity.
